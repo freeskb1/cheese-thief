@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { colors, fonts, paperBg } from '../utils/theme';
 import { joinRoom, setupDisconnectHandler } from '../firebase/room';
 import { getStoredNickname, getStoredAvatar, setStoredNickname, setStoredAvatar } from '../utils/storage';
-import { pickRandomNickname } from '../utils/game';
 import MouseAvatar from '../components/MouseAvatar';
 
 export default function JoinRoom({ playerId, onJoined, onBack }) {
@@ -14,7 +13,8 @@ export default function JoinRoom({ playerId, onJoined, onBack }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setNickname(getStoredNickname() || pickRandomNickname());
+    const stored = getStoredNickname();
+    if (stored) setNickname(stored);
     setAvatarIndex(getStoredAvatar());
 
     // URL ?room=XXXX 로 들어왔으면 코드 자동 채움

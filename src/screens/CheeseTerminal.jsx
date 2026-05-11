@@ -8,7 +8,7 @@ import {
   endGame,
 } from '../firebase/room';
 import { GAME_PHASE } from '../utils/game';
-import { speak, stopSpeaking } from '../utils/tts';
+import { speak, stopSpeaking, unlockTTS } from '../utils/tts';
 import BigCheese from '../components/BigCheese';
 import EmptyPlate from '../components/EmptyPlate';
 import StarryNight from '../components/StarryNight';
@@ -95,23 +95,24 @@ function SetupWaiting({ phase }) {
   );
 }
 
-// 밤 인트로 (3~5초)
+// 밤 인트로 — 사용자 탭으로 시작 (TTS 자동재생 정책 회피)
 function NightIntro({ room, roomCode }) {
-  const said = useRef(false);
-  useEffect(() => {
-    if (said.current) return;
-    said.current = true;
-    speak('쉿... 모두 눈을 감고 잠드세요. 깊은 밤이 찾아왔어요.');
+  const [started, setStarted] = useState(false);
 
-    const t = setTimeout(() => {
+  function handleStart() {
+    if (started) return;
+    setStarted(true);
+    unlockTTS();
+    speak('쉿... 모두 눈을 감고 잠드세요. 깊은 밤이 찾아왔어요.');
+    setTimeout(() => {
       setCurrentHour(roomCode, 1);
       setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
     }, 5500);
-    return () => clearTimeout(t);
-  }, [roomCode]);
+  }
 
   return (
     <div
+      onClick={handleStart}
       style={{
         height: '100%',
         background: colors.midnight,
@@ -122,6 +123,7 @@ function NightIntro({ room, roomCode }) {
         justifyContent: 'center',
         padding: 32,
         textAlign: 'center',
+        cursor: started ? 'default' : 'pointer',
       }}
     >
       <StarryNight density="high" />
@@ -129,12 +131,38 @@ function NightIntro({ room, roomCode }) {
         <svg width="80" height="80" viewBox="0 0 100 100">
           <path d="M65 20 Q35 25 35 55 Q35 80 65 80 Q50 75 45 60 Q40 45 45 30 Q50 20 65 20 Z" fill={colors.cheese} opacity="0.9" />
         </svg>
-        <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
-          깊은 밤이<br />찾아왔어요
-        </div>
-        <div style={{ fontSize: 12, color: colors.midnightText, marginTop: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
-          "쉿... 모두 눈을 감고<br />잠드세요"
-        </div>
+        {!started ? (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
+              밤을 시작하려면<br />화면을 탭하세요
+            </div>
+            <div style={{ fontSize: 11, color: colors.midnightText, marginTop: 14, lineHeight: 1.6 }}>
+              모두 준비되면 방장이 탭
+            </div>
+            <div style={{
+              marginTop: 24,
+              padding: '12px 24px',
+              background: colors.cheese,
+              color: colors.ink,
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 700,
+              display: 'inline-block',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }}>
+              탭해서 시작 🌙
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
+              깊은 밤이<br />찾아왔어요
+            </div>
+            <div style={{ fontSize: 12, color: colors.midnightText, marginTop: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+              "쉿... 모두 눈을 감고<br />잠드세요"
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { colors, fonts, paperBg } from '../utils/theme';
 import { createRoom, setupDisconnectHandler } from '../firebase/room';
 import { getStoredNickname, getStoredAvatar, setStoredNickname, setStoredAvatar } from '../utils/storage';
-import { pickRandomNickname } from '../utils/game';
 import MouseAvatar from '../components/MouseAvatar';
 
 export default function Home({ playerId, onCreated, onJoin }) {
@@ -13,8 +12,9 @@ export default function Home({ playerId, onCreated, onJoin }) {
   const [step, setStep] = useState('main'); // main | profile
 
   useEffect(() => {
+    // 이전에 저장한 닉네임만 복원, 없으면 빈 상태
     const stored = getStoredNickname();
-    setNickname(stored || pickRandomNickname());
+    if (stored) setNickname(stored);
     setAvatarIndex(getStoredAvatar());
   }, []);
 

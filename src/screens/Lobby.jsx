@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { colors, fonts, paperBg } from '../utils/theme';
 import { setCheesePlayer, updateOptions, startGame, leaveRoom } from '../firebase/room';
 import { MIN_PLAYERS, MAX_PLAYERS } from '../utils/game';
+import { unlockTTS } from '../utils/tts';
 import MouseAvatar from '../components/MouseAvatar';
 
 export default function Lobby({ room, roomCode, playerId, onShowRules, onLeave }) {
@@ -38,6 +39,7 @@ export default function Lobby({ room, roomCode, playerId, onShowRules, onLeave }
     if (!isHost) return;
     if (cheesePlayerId == null) return;
     if (participantCount < MIN_PLAYERS) return;
+    unlockTTS(); // 사용자 인터랙션 - TTS 잠금 해제
     startGame(roomCode);
   }
 

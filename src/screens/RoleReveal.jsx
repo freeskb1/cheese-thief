@@ -33,7 +33,9 @@ export default function RoleReveal({ room, roomCode, playerId }) {
 
   const roleColor =
     role === ROLES.THIEF ? colors.cheese : role === ROLES.TROLL ? colors.troll : colors.sage;
-  const isDark = role === ROLES.THIEF;
+  // 카드 뒤집기 전까지는 모두 동일한 배경 (옆사람 눈치 못 채게)
+  // 카드 뒤집은 후에는 본인만 보는 상태이므로 역할별 색상 적용 가능
+  const isDark = revealed && role === ROLES.THIEF;
 
   return (
     <div
@@ -45,11 +47,12 @@ export default function RoleReveal({ room, roomCode, playerId }) {
         flexDirection: 'column',
         padding: 24,
         animation: 'fadeIn 0.5s',
+        transition: 'background 0.4s',
       }}
     >
       <div style={{ paddingTop: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 11, letterSpacing: 2, color: isDark ? colors.midnightText : colors.muted }}>YOUR ROLE</div>
-        <div style={{ fontSize: 11, color: isDark ? colors.midnightText : colors.muted, marginTop: 4 }}>아무에게도 보여주지 마세요</div>
+        <div style={{ fontSize: 11, color: isDark ? colors.midnightText : colors.muted, marginTop: 4 }}>{revealed ? '아무에게도 보여주지 마세요' : '아무에게도 보여주지 마세요'}</div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0' }}>
@@ -60,8 +63,8 @@ export default function RoleReveal({ room, roomCode, playerId }) {
               width: '85%',
               maxWidth: 320,
               aspectRatio: '3/4',
-              background: isDark ? colors.midnightLight : colors.paper,
-              border: `1.5px solid ${roleColor}`,
+              background: colors.paper,
+              border: `1.5px solid ${colors.hint}`,
               borderRadius: 18,
               display: 'flex',
               flexDirection: 'column',
@@ -73,10 +76,10 @@ export default function RoleReveal({ room, roomCode, playerId }) {
             }}
           >
             <div style={{ fontSize: 60 }}>🎭</div>
-            <div style={{ fontSize: 14, color: isDark ? colors.midnightText : colors.ink, marginTop: 16, fontWeight: 700 }}>
+            <div style={{ fontSize: 14, color: colors.ink, marginTop: 16, fontWeight: 700 }}>
               탭해서 역할 확인
             </div>
-            <div style={{ fontSize: 11, color: isDark ? colors.midnightSub : colors.muted, marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: colors.muted, marginTop: 8 }}>
               주변에 누가 보고 있지 않은지 확인하세요
             </div>
           </button>

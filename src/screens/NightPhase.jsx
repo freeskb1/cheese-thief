@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { colors } from '../utils/theme';
 import { GAME_PHASE } from '../utils/game';
 import Dice from '../components/Dice';
@@ -6,36 +6,40 @@ import StarryNight from '../components/StarryNight';
 import WoodenCup from '../components/WoodenCup';
 
 // 개인 폰의 밤 단계 — 항상 잠든 화면 유지
-// C 상태: 누가 내 컵을 두 번 탭하면 주사위 노출 (3초)
+// 꾹 눌러서 들춤 (떼면 닫힘) - 의도치 않은 들춤 방지를 위해 500ms hold
+const HOLD_THRESHOLD = 500;
+
 export default function NightPhase({ room, roomCode, playerId }) {
-  const [peeked, setPeeked] = useState(false);
+  const [peeking, setPeeking] = useState(false);
+  const [pressing, setPressing] = useState(false);
+  const holdTimerRef = useRef(null);
   const me = room.players?.[playerId];
   const dice = me?.dice;
-  const [tapCount, setTapCount] = useState(0);
 
-  // 두 번 탭으로 들춤 (한 번은 우연 방지)
-  useEffect(() => {
-    if (tapCount >= 2) {
-      setPeeked(true);
-      const t = setTimeout(() => {
-        setPeeked(false);
-        setTapCount(0);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-    if (tapCount === 1) {
-      const reset = setTimeout(() => setTapCount(0), 1500);
-      return () => clearTimeout(reset);
-    }
-  }, [tapCount]);
+  function handlePressStart(e) {
+    if (e?.preventDefault) e.preventDefault();
+    setPressing(true);
+    holdTimerRef.current = setTimeout(() => {
+      setPeeking(true);
+    }, HOLD_THRESHOLD);
+  }
 
-  function handleTap() {
-    if (!peeked) {
-      setTapCount((c) => c + 1);
+  function handlePressEnd() {
+    setPressing(false);
+    setPeeking(false);
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
     }
   }
 
-  // 모닝 단계 — 밝은 화면으로 전환 (잠시 보여줌)
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
+
+  // 모닝 단계
   if (room.phase === GAME_PHASE.MORNING) {
     return (
       <div
@@ -62,8 +66,8 @@ export default function NightPhase({ room, roomCode, playerId }) {
     );
   }
 
-  // C 상태: 들춰진 상태 (밤 톤 유지, 주사위만 노출)
-  if (peeked) {
+  // 들춰진 상태 — 누르는 동안만
+  if (peeking) {
     return (
       <div
         style={{
@@ -76,25 +80,30 @@ export default function NightPhase({ room, roomCode, playerId }) {
           alignItems: 'center',
           justifyContent: 'center',
           padding: 24,
+          touchAction: 'none',
+          userSelect: 'none',
         }}
-        onClick={handleTap}
+        onMouseUp={handlePressEnd}
+        onMouseLeave={handlePressEnd}
+        onTouchEnd={handlePressEnd}
+        onTouchCancel={handlePressEnd}
       >
         <StarryNight density="low" />
         <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
           <div style={{ fontSize: 11, color: colors.midnightText, letterSpacing: 1, marginBottom: 16 }}>
-            누군가 보고 있어요
+            👀 누군가 보고 있어요
           </div>
           <Dice value={dice} size={160} />
           <div style={{ fontSize: 32, fontWeight: 700, color: colors.cheese, marginTop: 20, fontFamily: 'monospace' }}>
             {dice}
           </div>
-          <div style={{ fontSize: 10, color: colors.midnightSub, marginTop: 8 }}>3초 후 다시 잠듭니다</div>
+          <div style={{ fontSize: 10, color: colors.midnightSub, marginTop: 8 }}>손을 떼면 다시 잠듭니다</div>
         </div>
       </div>
     );
   }
 
-  // A/B/D 상태: 항상 같은 잠든 화면
+  // 평소 잠든 화면 — 꾹 누르면 들춰짐
   return (
     <div
       style={{
@@ -108,8 +117,15 @@ export default function NightPhase({ room, roomCode, playerId }) {
         justifyContent: 'center',
         padding: 24,
         cursor: 'pointer',
+        touchAction: 'none',
+        userSelect: 'none',
       }}
-      onClick={handleTap}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+      onTouchCancel={handlePressEnd}
     >
       <StarryNight density="medium" />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -127,9 +143,9 @@ export default function NightPhase({ room, roomCode, playerId }) {
         </div>
       </div>
 
-      {tapCount === 1 && (
-        <div style={{ position: 'absolute', bottom: 24, fontSize: 9, color: colors.midnightSub, opacity: 0.4 }}>
-          한 번 더 탭하면 들춰져요
+      {pressing && (
+        <div style={{ position: 'absolute', bottom: 24, fontSize: 10, color: colors.cheese, opacity: 0.7 }}>
+          꾹 누르고 있는 중...
         </div>
       )}
     </div>
