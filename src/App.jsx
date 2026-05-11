@@ -13,6 +13,7 @@ import DiceRoll from './screens/DiceRoll';
 import NightPhase from './screens/NightPhase';
 import CheeseTerminal from './screens/CheeseTerminal';
 import Discussion from './screens/Discussion';
+import RevealResultPlayer from './screens/RevealResultPlayer';
 import GameOver from './screens/GameOver';
 
 // 메인 라우터/상태머신
@@ -115,6 +116,10 @@ export default function App() {
         return <NightPhase room={room} roomCode={roomCode} playerId={playerId} />;
       case GAME_PHASE.DISCUSSION:
         return <Discussion room={room} roomCode={roomCode} playerId={playerId} />;
+      case GAME_PHASE.VOTING:
+        return <Discussion room={room} roomCode={roomCode} playerId={playerId} voting />;
+      case GAME_PHASE.REVEAL_RESULT:
+        return <RevealResultPlayer room={room} roomCode={roomCode} playerId={playerId} />;
       case GAME_PHASE.ENDED:
         return <GameOver room={room} roomCode={roomCode} playerId={playerId} />;
       default:

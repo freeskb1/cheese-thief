@@ -90,10 +90,12 @@ export async function leaveRoom(roomCode, playerId) {
   await remove(getPlayerRef(roomCode, playerId));
 }
 
-// 자동 해제 시 (브라우저 닫기/네트워크 끊김) — 게임 중이면 전체 방 무효화
+// 자동 해제 시 핸들러 — 현재는 비활성화
+// Firebase 일시 끊김에도 onDisconnect가 실행되어 갑자기 홈으로 튕기는 문제 방지
+// 게임이 짧으니 사용자가 명시적으로 leaveRoom 호출하는 것에 의존
 export function setupDisconnectHandler(roomCode, playerId) {
-  const playerRef = getPlayerRef(roomCode, playerId);
-  onDisconnect(playerRef).remove();
+  // no-op
+  // 필요시 onDisconnect(getPlayerRef(roomCode, playerId)).remove();
 }
 
 // 룸 실시간 구독
@@ -140,7 +142,20 @@ export async function startGame(roomCode) {
 
 // 단계 전환
 export async function setPhase(roomCode, phase) {
-  await update(getRoomRef(roomCode), { phase });
+  // 단계 전환 시 모든 플레이어의 ready 플래그 초기화
+  const snap = await get(getRoomRef(roomCode));
+  const room = snap.val();
+  if (!room) return;
+  const updates = { phase };
+  for (const id of Object.keys(room.players || {})) {
+    updates[`players/${id}/ready`] = null;
+  }
+  await update(getRoomRef(roomCode), updates);
+}
+
+// 플레이어가 현재 단계에서 "준비됨" 표시
+export async function setPlayerReady(roomCode, playerId, ready = true) {
+  await update(getPlayerRef(roomCode, playerId), { ready });
 }
 
 // 현재 호명 시간 설정 (1~6) - 0이면 미시작

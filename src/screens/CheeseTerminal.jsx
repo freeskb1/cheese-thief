@@ -7,14 +7,14 @@ import {
   startDiscussionTimer,
   endGame,
 } from '../firebase/room';
-import { GAME_PHASE } from '../utils/game';
+import { GAME_PHASE, ROLES, ROLE_LABELS } from '../utils/game';
 import { speak, stopSpeaking, unlockTTS } from '../utils/tts';
 import BigCheese from '../components/BigCheese';
 import EmptyPlate from '../components/EmptyPlate';
 import StarryNight from '../components/StarryNight';
 
-// 시간당 진행 시간 (ms)
-const HOUR_DURATION = 12000; // 각 시간 12초 (호명 → 대기 → 잠들기)
+// 시간당 진행 시간 (ms) - 호명 2초 + 10초 대기 + 잠드세요 2초
+const HOUR_DURATION = 14000;
 
 // 중앙 폰 — 게임 진행 전체를 주도
 export default function CheeseTerminal({ room, roomCode }) {
@@ -40,11 +40,45 @@ function renderPhase(room, roomCode) {
       return <Morning room={room} roomCode={roomCode} />;
     case GAME_PHASE.DISCUSSION:
       return <DiscussionScreen room={room} roomCode={roomCode} />;
+    case GAME_PHASE.VOTING:
+      return <VotingScreen room={room} roomCode={roomCode} />;
+    case GAME_PHASE.REVEAL_RESULT:
+      return <RevealResultScreen room={room} roomCode={roomCode} />;
     case GAME_PHASE.ENDED:
-      return <EndedScreen room={room} />;
+      return <EndedTerminalScreen room={room} />;
     default:
       return null;
   }
+}
+
+// 게임 종료 후 중앙 폰 (호스트가 다시하기/로비복귀를 다른 폰에서)
+function EndedTerminalScreen({ room }) {
+  return (
+    <div
+      style={{
+        height: '100%',
+        background: colors.cream,
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #E8DDC0 1px, transparent 0)',
+        backgroundSize: '6px 6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        padding: 32,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 11, letterSpacing: 2, color: colors.muted }}>GAME OVER</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: colors.ink, marginTop: 12, fontFamily: fonts.display }}>
+        한 판이 끝났어요
+      </div>
+      <div style={{ fontSize: 12, color: colors.muted, marginTop: 16, lineHeight: 1.6 }}>
+        방장 폰에서<br />
+        다시하기 또는 로비 복귀를<br />
+        선택해주세요
+      </div>
+    </div>
+  );
 }
 
 // 셋업 대기 화면
@@ -103,7 +137,7 @@ function NightIntro({ room, roomCode }) {
     if (started) return;
     setStarted(true);
     unlockTTS();
-    speak('쉿... 모두 눈을 감고 잠드세요. 깊은 밤이 찾아왔어요.');
+    speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다.');
     setTimeout(() => {
       setCurrentHour(roomCode, 1);
       setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
@@ -183,14 +217,14 @@ function NightHours({ room, roomCode }) {
     lastHourRef.current = hour;
     transitioningRef.current = false;
 
-    // 호명 → 대기 → 잠들기 안내
     const hourLabel = hourToKorean(hour);
-    speak(`${hourLabel}... ${hourLabel}에 깨어난 쥐는 살며시 눈을 뜨세요.`);
+    // 호명 — 점잖은 톤
+    speak(`${hourLabel}. ${hourLabel}에 깨어난 쥐는 눈을 뜨세요.`);
 
-    // 6초 후 "잠드세요" 안내
-    const halfwayTimer = setTimeout(() => {
+    // 10초 후 "잠드세요" 안내
+    const sleepTimer = setTimeout(() => {
       speak(`${hourLabel}의 쥐는 다시 잠드세요.`);
-    }, HOUR_DURATION - 4000);
+    }, HOUR_DURATION - 3500);
 
     // 시간 종료 후 다음 시간
     const nextTimer = setTimeout(() => {
@@ -199,7 +233,6 @@ function NightHours({ room, roomCode }) {
       if (hour < 6) {
         setCurrentHour(roomCode, hour + 1);
       } else {
-        // 6시 끝 → 손 뻗기 또는 아침으로
         const needHandOut = !followerRuleVariant && participantCount >= 6 && participantCount <= 8;
         if (needHandOut) {
           setPhase(roomCode, GAME_PHASE.HAND_OUT);
@@ -210,7 +243,7 @@ function NightHours({ room, roomCode }) {
     }, HOUR_DURATION);
 
     return () => {
-      clearTimeout(halfwayTimer);
+      clearTimeout(sleepTimer);
       clearTimeout(nextTimer);
     };
   }, [hour, roomCode, followerRuleVariant, participantCount]);
@@ -348,19 +381,18 @@ function HandOut({ room, roomCode }) {
   );
 }
 
-// 아침 화면
+// 아침 화면 — 호스트가 토론 시작 버튼 누르기 전까지 대기
 function Morning({ room, roomCode }) {
   const said = useRef(false);
   useEffect(() => {
     if (said.current) return;
     said.current = true;
-    speak('아침이 밝았어요! 모두 눈을 뜨세요. 어머나, 치즈가 사라졌네요. 누가 훔쳐갔을까요?');
+    speak('아침이 밝았어요. 모두 눈을 뜨세요. 치즈가 사라졌네요. 누가 훔쳐갔을까요?');
+  }, []);
 
-    const t = setTimeout(() => {
-      startDiscussionTimer(roomCode);
-    }, 6000);
-    return () => clearTimeout(t);
-  }, [roomCode]);
+  function handleStartDiscussion() {
+    startDiscussionTimer(roomCode);
+  }
 
   return (
     <div
@@ -371,12 +403,11 @@ function Morning({ room, roomCode }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         padding: 32,
         textAlign: 'center',
       }}
     >
-      <div style={{ position: 'absolute', top: 60 }}>
+      <div style={{ marginTop: 60 }}>
         <svg width="120" height="120" viewBox="0 0 120 120" style={{ animation: 'float 3s ease-in-out infinite' }}>
           <circle cx="60" cy="60" r="28" fill={colors.cheese} />
           <g stroke={colors.cheese} strokeWidth="3" strokeLinecap="round">
@@ -392,7 +423,7 @@ function Morning({ room, roomCode }) {
         </svg>
       </div>
 
-      <div style={{ marginTop: 80, animation: 'slideUp 0.6s' }}>
+      <div style={{ marginTop: 16, animation: 'slideUp 0.6s' }}>
         <div style={{ fontSize: 26, fontWeight: 700, color: colors.ink, lineHeight: 1.3, fontFamily: fonts.display }}>
           아침이<br />밝았어요!
         </div>
@@ -400,11 +431,31 @@ function Morning({ room, roomCode }) {
           "어머나, 치즈가<br />사라졌네요...<br />누가 훔쳐갔을까요?"
         </div>
       </div>
+
+      <div style={{ flex: 1 }} />
+
+      <button
+        onClick={handleStartDiscussion}
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          padding: '14px',
+          background: colors.ink,
+          border: 'none',
+          borderRadius: 12,
+          fontSize: 14,
+          fontWeight: 700,
+          color: colors.cheeseLight,
+          fontFamily: fonts.body,
+        }}
+      >
+        💬 토론 시작 (3분)
+      </button>
     </div>
   );
 }
 
-// 토론 단계
+// 토론 단계 — 호스트가 "투표 시작" 버튼 누르기 전까지 진행 안 됨
 function DiscussionScreen({ room, roomCode }) {
   const [remaining, setRemaining] = useState(0);
 
@@ -413,9 +464,7 @@ function DiscussionScreen({ room, roomCode }) {
       if (room.timerEndsAt) {
         const r = Math.max(0, room.timerEndsAt - Date.now());
         setRemaining(r);
-        if (r === 0) {
-          endGame(roomCode);
-        }
+        // 타이머 0이 되어도 자동 종료 X — 안내만 표시
       }
     };
     update();
@@ -429,8 +478,8 @@ function DiscussionScreen({ room, roomCode }) {
   const progress = remaining / totalMs;
   const circumference = 2 * Math.PI * 84;
 
-  function handleSkipToVote() {
-    endGame(roomCode);
+  function handleStartVoting() {
+    setPhase(roomCode, GAME_PHASE.VOTING);
   }
 
   return (
@@ -473,20 +522,20 @@ function DiscussionScreen({ room, roomCode }) {
               {mins}:{String(secs).padStart(2, '0')}
             </text>
             <text x="100" y="128" fontSize="11" fill={colors.muted} textAnchor="middle">
-              남은 시간
+              {remaining === 0 ? '시간 종료' : '남은 시간'}
             </text>
           </svg>
         </div>
 
         <div style={{ marginTop: 32, fontSize: 12, color: colors.muted, fontStyle: 'italic', textAlign: 'center', lineHeight: 1.7, padding: '0 16px' }}>
-          "자유롭게 이야기 나누세요~<br />
+          "자유롭게 이야기 나누세요.<br />
           본 것을 말해도 되고,<br />
-          거짓말을 해도 된답니다"
+          거짓말을 해도 됩니다."
         </div>
       </div>
 
       <button
-        onClick={handleSkipToVote}
+        onClick={handleStartVoting}
         style={{
           padding: '14px',
           background: colors.cheese,
@@ -498,14 +547,25 @@ function DiscussionScreen({ room, roomCode }) {
           fontFamily: fonts.body,
         }}
       >
-        바로 투표 시작
+        👉 투표 시작
       </button>
     </div>
   );
 }
 
-// 게임 종료 화면 (치즈 단말용)
-function EndedScreen({ room }) {
+// 투표 안내 화면 (치즈 단말용) — 손가락 지목 안내
+function VotingScreen({ room, roomCode }) {
+  const said = useRef(false);
+  useEffect(() => {
+    if (said.current) return;
+    said.current = true;
+    speak('자, 이제 투표 시간입니다. 하나, 둘, 셋을 세면 도둑이라고 생각하는 쥐를 손가락으로 가리키세요.');
+  }, []);
+
+  function handleReveal() {
+    setPhase(roomCode, GAME_PHASE.REVEAL_RESULT);
+  }
+
   return (
     <div
       style={{
@@ -516,17 +576,19 @@ function EndedScreen({ room }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         padding: 32,
         textAlign: 'center',
       }}
     >
-      <div style={{ fontSize: 11, letterSpacing: 2, color: colors.muted }}>VOTE TIME</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: colors.ink, marginTop: 12, lineHeight: 1.3, fontFamily: fonts.display }}>
-        투표 시간이에요!
+      <div style={{ paddingTop: 24 }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, color: colors.muted }}>VOTE TIME</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: colors.ink, marginTop: 12, lineHeight: 1.3, fontFamily: fonts.display }}>
+          투표 시간이에요!
+        </div>
       </div>
-      <div style={{ marginTop: 32 }}>
-        <svg width="100" height="100" viewBox="0 0 120 120">
+
+      <div style={{ marginTop: 24 }}>
+        <svg width="120" height="120" viewBox="0 0 120 120">
           <g transform="translate(60, 60)">
             <ellipse cx="0" cy="20" rx="25" ry="20" fill="#E8B5A0" stroke="#8B6940" strokeWidth="2" />
             <rect x="-5" y="-30" width="10" height="40" rx="5" fill="#E8B5A0" stroke="#8B6940" strokeWidth="2" />
@@ -537,12 +599,157 @@ function EndedScreen({ room }) {
           </g>
         </svg>
       </div>
-      <div style={{ fontSize: 14, color: colors.ink, marginTop: 24, lineHeight: 1.6 }}>
-        셋을 세면 손가락으로<br />
-        도둑이라고 생각하는<br />
-        쥐를 가리키세요
+
+      <div style={{ marginTop: 24, fontSize: 14, color: colors.ink, lineHeight: 1.7 }}>
+        하나, 둘, 셋을 세면<br />
+        손가락으로 도둑이라고<br />
+        생각하는 쥐를 가리키세요
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <button
+        onClick={handleReveal}
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          padding: '14px',
+          background: colors.cheese,
+          border: 'none',
+          borderRadius: 12,
+          fontSize: 14,
+          fontWeight: 700,
+          color: colors.ink,
+          fontFamily: fonts.body,
+        }}
+      >
+        🎭 결과 확인 (역할 공개)
+      </button>
+      <div style={{ fontSize: 10, color: colors.muted, marginTop: 8 }}>
+        모두 지목한 후 누르세요
       </div>
     </div>
+  );
+}
+
+// 결과 발표 화면 (치즈 단말용) — 역할 공개
+function RevealResultScreen({ room, roomCode }) {
+  const said = useRef(false);
+  useEffect(() => {
+    if (said.current) return;
+    said.current = true;
+    speak('자, 이제 진실의 시간입니다. 모두의 정체를 공개합니다.');
+  }, []);
+
+  function handleEnd() {
+    endGame(roomCode);
+  }
+
+  const participants = Object.entries(room.players || {})
+    .filter(([id]) => id !== room.cheesePlayerId);
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        background: colors.cream,
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #E8DDC0 1px, transparent 0)',
+        backgroundSize: '6px 6px',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 24,
+      }}
+    >
+      <div style={{ paddingTop: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, color: colors.muted }}>THE TRUTH</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: colors.ink, marginTop: 8, fontFamily: fonts.display }}>
+          진실의 시간!
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', marginTop: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, paddingBottom: 12 }}>
+          {participants.map(([pid, p]) => {
+            const role = p.role;
+            const isThief = role === ROLES.THIEF;
+            const isTroll = role === ROLES.TROLL;
+            const cardColor = isThief ? colors.cheese : isTroll ? colors.troll : colors.sage;
+            const bgColor = isThief ? colors.midnight : isTroll ? '#FFE5F0' : colors.paper;
+            const textColor = isThief ? colors.cheese : colors.ink;
+
+            return (
+              <div
+                key={pid}
+                style={{
+                  background: bgColor,
+                  border: `1.5px solid ${cardColor}`,
+                  borderRadius: 12,
+                  padding: '12px 8px',
+                  textAlign: 'center',
+                  animation: 'slideUp 0.5s',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <MouseAvatarMini role={role} color={colors.avatarColors[p.avatarIndex] || colors.avatarColors[0]} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: textColor, marginTop: 6 }}>
+                  {p.nickname}
+                </div>
+                <div style={{ fontSize: 10, color: cardColor, fontWeight: 700, marginTop: 2 }}>
+                  {ROLE_LABELS[role] || '잠꾸러기'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <button
+        onClick={handleEnd}
+        style={{
+          padding: '14px',
+          background: colors.ink,
+          border: 'none',
+          borderRadius: 12,
+          fontSize: 14,
+          fontWeight: 700,
+          color: colors.cheeseLight,
+          fontFamily: fonts.body,
+        }}
+      >
+        다음으로
+      </button>
+    </div>
+  );
+}
+
+function MouseAvatarMini({ role, color }) {
+  return (
+    <svg width="44" height="44" viewBox="0 0 50 50">
+      <ellipse cx="25" cy="28" rx="16" ry="15" fill={color} />
+      <ellipse cx="13" cy="20" rx="6" ry="7" fill={color} />
+      <ellipse cx="37" cy="20" rx="6" ry="7" fill={color} />
+      <ellipse cx="13" cy="20" rx="3" ry="3.5" fill={role === ROLES.THIEF ? '#4A3E32' : '#F2B5C4'} />
+      <ellipse cx="37" cy="20" rx="3" ry="3.5" fill={role === ROLES.THIEF ? '#4A3E32' : '#F2B5C4'} />
+      {role === ROLES.THIEF ? (
+        <>
+          <rect x="12" y="25" width="26" height="6" fill="#1A1510" />
+          <circle cx="19" cy="28" r="2" fill="#F4D06F" />
+          <circle cx="31" cy="28" r="2" fill="#F4D06F" />
+        </>
+      ) : role === ROLES.TROLL ? (
+        <>
+          <path d="M9 12 L14 5 L19 12 L25 5 L31 12 L36 5 L41 12" stroke="#C73E5C" strokeWidth="1.5" fill="#F4D06F" />
+          <circle cx="20" cy="27" r="1.5" fill="#2A2520" />
+          <circle cx="30" cy="27" r="1.5" fill="#2A2520" />
+        </>
+      ) : (
+        <>
+          <circle cx="20" cy="27" r="1.5" fill="#2A2520" />
+          <circle cx="30" cy="27" r="1.5" fill="#2A2520" />
+        </>
+      )}
+    </svg>
   );
 }
 

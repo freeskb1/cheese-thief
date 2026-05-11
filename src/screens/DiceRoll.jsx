@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { colors, fonts, paperBg } from '../utils/theme';
-import { setPhase } from '../firebase/room';
+import { setPhase, setPlayerReady } from '../firebase/room';
 import { GAME_PHASE } from '../utils/game';
 import Dice from '../components/Dice';
 
@@ -9,9 +9,9 @@ const HOUR_LABELS = { 1: '새벽 1시', 2: '새벽 2시', 3: '새벽 3시', 4: '
 export default function DiceRoll({ room, roomCode, playerId }) {
   const me = room.players?.[playerId];
   const dice = me?.dice || 1;
+  const ready = !!me?.ready;
   const [rolling, setRolling] = useState(true);
   const [shown, setShown] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const isHost = room.hostId === playerId;
 
   // 굴림 애니메이션 (1.5초)
@@ -23,15 +23,20 @@ export default function DiceRoll({ room, roomCode, playerId }) {
     return () => clearTimeout(t);
   }, []);
 
-  // 호스트가 확인 완료하면 → 밤 단계로
-  useEffect(() => {
-    if (confirmed && isHost) {
-      const t = setTimeout(() => {
-        setPhase(roomCode, GAME_PHASE.NIGHT_INTRO);
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [confirmed, isHost, roomCode]);
+  function handleConfirm() {
+    setPlayerReady(roomCode, playerId, true);
+  }
+
+  function handleNext() {
+    setPhase(roomCode, GAME_PHASE.NIGHT_INTRO);
+  }
+
+  // 모든 참가자 ready 체크
+  const participants = Object.entries(room.players || {})
+    .filter(([id]) => id !== room.cheesePlayerId);
+  const readyCount = participants.filter(([, p]) => p.ready).length;
+  const totalCount = participants.length;
+  const allReady = readyCount === totalCount && totalCount > 0;
 
   return (
     <div style={{ height: '100vh', width: '100vw', ...paperBg, padding: 24, display: 'flex', flexDirection: 'column' }}>
@@ -66,9 +71,9 @@ export default function DiceRoll({ room, roomCode, playerId }) {
         </div>
       )}
 
-      {shown && !confirmed && (
+      {shown && !ready && (
         <button
-          onClick={() => setConfirmed(true)}
+          onClick={handleConfirm}
           style={{
             padding: '14px',
             background: colors.cheese,
@@ -84,12 +89,32 @@ export default function DiceRoll({ room, roomCode, playerId }) {
         </button>
       )}
 
-      {confirmed && (
-        <div style={{ padding: '14px', background: colors.hint, borderRadius: 12, fontSize: 13, fontWeight: 700, color: colors.ink, textAlign: 'center', opacity: 0.6 }}>
-          ✓ 기억 완료
-          {isHost && <div style={{ fontSize: 10, marginTop: 4 }}>곧 밤이 시작돼요...</div>}
-          {!isHost && <div style={{ fontSize: 10, marginTop: 4 }}>방장 대기 중...</div>}
+      {ready && !isHost && (
+        <div style={{ padding: 14, background: colors.paper, borderRadius: 12, border: `0.5px solid ${colors.hint}`, textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: colors.muted }}>✓ 기억 완료 · 방장 대기 중</div>
+          <div style={{ fontSize: 10, color: colors.muted, marginTop: 4 }}>
+            ({readyCount}/{totalCount}명 확인)
+          </div>
         </div>
+      )}
+
+      {ready && isHost && (
+        <button
+          onClick={handleNext}
+          style={{
+            padding: '14px',
+            background: allReady ? colors.cheese : colors.hint,
+            border: 'none',
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 700,
+            color: colors.ink,
+            fontFamily: fonts.body,
+            opacity: allReady ? 1 : 0.7,
+          }}
+        >
+          {allReady ? '🌙 밤을 시작 →' : `대기 중 (${readyCount}/${totalCount}) — 강제 진행`}
+        </button>
       )}
     </div>
   );

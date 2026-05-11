@@ -9,6 +9,8 @@ export const GAME_PHASE = {
   HAND_OUT: 'hand_out',           // 손 뻗기 (옵션)
   MORNING: 'morning',             // 아침
   DISCUSSION: 'discussion',       // 토론 타이머
+  VOTING: 'voting',               // 투표 안내 (지목)
+  REVEAL_RESULT: 'reveal_result', // 결과 발표 (역할 공개)
   ENDED: 'ended',                 // 게임 종료
 };
 
