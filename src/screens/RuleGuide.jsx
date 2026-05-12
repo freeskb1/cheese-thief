@@ -403,7 +403,7 @@ function NightPage(props) {
       <div style={{ margin: '14px 12px 0', padding: 12, background: 'rgba(244, 208, 111, 0.1)', borderRadius: 10, border: `0.5px solid ${colors.midnightBorder}` }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: colors.cheese, marginBottom: 4 }}>💡 혼자 깼다면</div>
         <div style={{ fontSize: 10, color: colors.midnightText, lineHeight: 1.5 }}>
-          옆 사람 폰을 꾹 눌러서<br />주사위를 잠시 들춰볼 수 있어요
+          옆 사람 폰 화면을 탭해서<br />주사위를 들춰볼 수 있어요
         </div>
       </div>
     </PageFrame>

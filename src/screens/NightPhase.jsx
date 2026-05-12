@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
 import { colors } from '../utils/theme';
 import { GAME_PHASE } from '../utils/game';
 import Dice from '../components/Dice';
@@ -6,38 +6,15 @@ import StarryNight from '../components/StarryNight';
 import WoodenCup from '../components/WoodenCup';
 
 // 개인 폰의 밤 단계 — 항상 잠든 화면 유지
-// 꾹 눌러서 들춤 (떼면 닫힘) - 의도치 않은 들춤 방지를 위해 500ms hold
-const HOLD_THRESHOLD = 500;
-
-export default function NightPhase({ room, roomCode, playerId }) {
+// 탭으로 열고/닫기 (모바일 안정성을 위한 단순 토글)
+export default function NightPhase({ room, playerId }) {
   const [peeking, setPeeking] = useState(false);
-  const [pressing, setPressing] = useState(false);
-  const holdTimerRef = useRef(null);
   const me = room.players?.[playerId];
   const dice = me?.dice;
 
-  function handlePressStart(e) {
-    if (e?.preventDefault) e.preventDefault();
-    setPressing(true);
-    holdTimerRef.current = setTimeout(() => {
-      setPeeking(true);
-    }, HOLD_THRESHOLD);
+  function togglePeek() {
+    setPeeking((p) => !p);
   }
-
-  function handlePressEnd() {
-    setPressing(false);
-    setPeeking(false);
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    };
-  }, []);
 
   // 모닝 단계
   if (room.phase === GAME_PHASE.MORNING) {
@@ -66,10 +43,11 @@ export default function NightPhase({ room, roomCode, playerId }) {
     );
   }
 
-  // 들춰진 상태 — 누르는 동안만
+  // 들춰진 상태 — 화면 어디든 탭하면 닫힘
   if (peeking) {
     return (
       <div
+        onClick={togglePeek}
         style={{
           height: '100vh',
           width: '100vw',
@@ -80,16 +58,13 @@ export default function NightPhase({ room, roomCode, playerId }) {
           alignItems: 'center',
           justifyContent: 'center',
           padding: 24,
-          touchAction: 'none',
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
           userSelect: 'none',
         }}
-        onMouseUp={handlePressEnd}
-        onMouseLeave={handlePressEnd}
-        onTouchEnd={handlePressEnd}
-        onTouchCancel={handlePressEnd}
       >
         <StarryNight density="low" />
-        <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
+        <div style={{ position: 'relative', textAlign: 'center', zIndex: 1, pointerEvents: 'none' }}>
           <div style={{ fontSize: 11, color: colors.midnightText, letterSpacing: 1, marginBottom: 16 }}>
             👀 누군가 보고 있어요
           </div>
@@ -97,15 +72,27 @@ export default function NightPhase({ room, roomCode, playerId }) {
           <div style={{ fontSize: 32, fontWeight: 700, color: colors.cheese, marginTop: 20, fontFamily: 'monospace' }}>
             {dice}
           </div>
-          <div style={{ fontSize: 10, color: colors.midnightSub, marginTop: 8 }}>손을 떼면 다시 잠듭니다</div>
+        </div>
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          fontSize: 12,
+          color: colors.cheese,
+          pointerEvents: 'none',
+        }}>
+          탭하면 다시 잠듭니다
         </div>
       </div>
     );
   }
 
-  // 평소 잠든 화면 — 꾹 누르면 들춰짐
+  // 평소 잠든 화면 — 화면 어디든 탭하면 들춰짐
   return (
     <div
+      onClick={togglePeek}
       style={{
         height: '100vh',
         width: '100vw',
@@ -117,18 +104,12 @@ export default function NightPhase({ room, roomCode, playerId }) {
         justifyContent: 'center',
         padding: 24,
         cursor: 'pointer',
-        touchAction: 'none',
+        WebkitTapHighlightColor: 'transparent',
         userSelect: 'none',
       }}
-      onMouseDown={handlePressStart}
-      onMouseUp={handlePressEnd}
-      onMouseLeave={handlePressEnd}
-      onTouchStart={handlePressStart}
-      onTouchEnd={handlePressEnd}
-      onTouchCancel={handlePressEnd}
     >
       <StarryNight density="medium" />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
         <WoodenCup size={180} dark />
 
         <div style={{ marginTop: 24, textAlign: 'center' }}>
@@ -142,12 +123,6 @@ export default function NightPhase({ room, roomCode, playerId }) {
           </div>
         </div>
       </div>
-
-      {pressing && (
-        <div style={{ position: 'absolute', bottom: 24, fontSize: 10, color: colors.cheese, opacity: 0.7 }}>
-          꾹 누르고 있는 중...
-        </div>
-      )}
     </div>
   );
 }
