@@ -122,10 +122,24 @@ export default function Lobby({ room, roomCode, playerId, onShowRules, onLeave }
         />
         <OptionToggle
           label="추종자 룰 변형"
-          desc="OFF: 원작 룰 (6~8인 손 뻗기) · ON: 변형"
+          desc="OFF: 원작 (6~8인은 6시 후 손 뻗기) · ON: 변형 (도둑이 깰 때 즉시 공범 지정)"
           on={!!room.options?.followerRuleVariant}
           disabled={!isHost}
           onToggle={() => toggleOption('followerRuleVariant')}
+        />
+        <OptionToggle
+          label="빠른 모드"
+          desc="ON: 행동 시간 7초 · OFF: 10초 (기본)"
+          on={!!room.options?.fastMode}
+          disabled={!isHost}
+          onToggle={() => toggleOption('fastMode')}
+        />
+        <OptionToggle
+          label="초세기 나레이션"
+          desc="시간 호명 후 카운트다운 들려주기 (여유 ↑ 긴장감 ↓)"
+          on={!!room.options?.countNarration}
+          disabled={!isHost}
+          onToggle={() => toggleOption('countNarration')}
         />
 
         {/* 룰 설명 */}

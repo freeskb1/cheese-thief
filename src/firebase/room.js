@@ -46,6 +46,8 @@ export async function createRoom({ hostId, nickname, avatarIndex }) {
     options: {
       includeTroll: false,
       followerRuleVariant: false, // false = 원작 룰, true = 변형 (즉시 공범 지정)
+      fastMode: false, // true = 빠른 모드(7초), false = 기본(15초)
+      countNarration: false, // true = 초세기 나레이션
     },
     cheeseStolen: false,
     currentHour: 0,
