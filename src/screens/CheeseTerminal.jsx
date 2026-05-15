@@ -189,19 +189,19 @@ function NightIntro({ room, roomCode }) {
     setStarted(true);
     unlockTTS();
     if (followerRuleVariant) {
-      // 변형 룰 — 도둑이 즉시 공범 지정
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 변형 룰입니다. 치즈 도둑은 자기 시간에 깨면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리켜 공범으로 만드세요.');
+      // 변형 룰 — "변형 룰" 단어 없이 공범 안내만
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 치즈 도둑은 자기 시간에 깨면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리켜 공범으로 만드세요.');
       setTimeout(() => {
         setCurrentHour(roomCode, 1);
         setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
-      }, 13000);
+      }, 12000);
     } else if (needHandOut) {
       // 원작 룰 + 6~8인 — 손 뻗기 단계가 끝에 있음
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 원작 룰입니다. 6시가 지나면 손 뻗기 시간이 있을 거예요.');
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 6시가 지나면 손 뻗기 시간이 있을 거예요.');
       setTimeout(() => {
         setCurrentHour(roomCode, 1);
         setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
-      }, 10000);
+      }, 9000);
     } else {
       // 원작 룰 + 4~5인 / 9~10인 — 손 뻗기 없음
       speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다.');
@@ -234,37 +234,9 @@ function NightIntro({ room, roomCode }) {
           <path d="M65 20 Q35 25 35 55 Q35 80 65 80 Q50 75 45 60 Q40 45 45 30 Q50 20 65 20 Z" fill={colors.cheese} opacity="0.9" />
         </svg>
 
-        {/* 룰 모드 뱃지 */}
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 10,
-            padding: '3px 10px',
-            background: followerRuleVariant ? colors.troll : 'rgba(244,208,111,0.2)',
-            color: followerRuleVariant ? 'white' : colors.cheese,
-            borderRadius: 10,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-          }}>
-            {followerRuleVariant ? '🃏 변형 룰' : '📜 원작 룰'}
-          </span>
-          {needHandOut && !followerRuleVariant && (
-            <span style={{
-              fontSize: 10,
-              padding: '3px 10px',
-              background: 'rgba(156, 175, 136, 0.3)',
-              color: colors.sage,
-              borderRadius: 10,
-              fontWeight: 700,
-              letterSpacing: 0.5,
-            }}>
-              ✋ 손 뻗기 포함
-            </span>
-          )}
-        </div>
-
         {!started ? (
           <>
-            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 20, lineHeight: 1.4, fontFamily: fonts.display }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
               밤을 시작하려면<br />화면을 탭하세요
             </div>
             <div style={{ fontSize: 11, color: colors.midnightText, marginTop: 14, lineHeight: 1.6 }}>
@@ -286,7 +258,7 @@ function NightIntro({ room, roomCode }) {
           </>
         ) : (
           <>
-            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 20, lineHeight: 1.4, fontFamily: fonts.display }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
               깊은 밤이<br />찾아왔어요
             </div>
             <div style={{ fontSize: 12, color: colors.midnightText, marginTop: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
@@ -314,10 +286,12 @@ function NightHours({ room, roomCode }) {
   const ACTION_SEC = fastMode ? 7 : 10;
   // 호명 발화 시간 (TTS가 끝날 때까지 대기) — 약 3.5초
   const ANNOUNCE_MS = 3500;
+  // 호명 후 카운트 시작 전까지 여유 (자연스럽게 들리도록)
+  const COUNT_START_GAP_MS = 1000;
   // "잠드세요" 발화 시간 - 약 2.5초
   const SLEEP_ANNOUNCE_MS = 2500;
-  // 총 시간 = 호명 + 행동 + 잠드세요
-  const HOUR_DURATION_MS = ANNOUNCE_MS + ACTION_SEC * 1000 + SLEEP_ANNOUNCE_MS;
+  // 총 시간 = 호명 + (카운트 시작 갭) + 행동 + 잠드세요
+  const HOUR_DURATION_MS = ANNOUNCE_MS + COUNT_START_GAP_MS + ACTION_SEC * 1000 + SLEEP_ANNOUNCE_MS;
 
   // 시간이 바뀔 때마다 나레이션
   useEffect(() => {
@@ -331,13 +305,12 @@ function NightHours({ room, roomCode }) {
 
     const timers = [];
 
-    // 2. 초세기 나레이션 (옵션) — 호명 끝나고부터 시작
+    // 2. 초세기 나레이션 (옵션) — 호명 끝나고 1초 쉰 후 카운트다운 시작
     if (countNarration) {
-      // ACTION_SEC초 동안 1초마다 숫자 발화. 마지막 3초는 더 강조
       // 카운트는 ACTION_SEC, ACTION_SEC-1, ..., 1 순서로
       for (let i = 0; i < ACTION_SEC; i++) {
         const remaining = ACTION_SEC - i;
-        const at = ANNOUNCE_MS + i * 1000;
+        const at = ANNOUNCE_MS + COUNT_START_GAP_MS + i * 1000;
         timers.push(setTimeout(() => {
           speak(String(remaining), { rate: 1.1 });
         }, at));
@@ -345,7 +318,7 @@ function NightHours({ room, roomCode }) {
     }
 
     // 3. "잠드세요" 안내 (행동 시간 다 지난 후)
-    const sleepAt = ANNOUNCE_MS + ACTION_SEC * 1000;
+    const sleepAt = ANNOUNCE_MS + COUNT_START_GAP_MS + ACTION_SEC * 1000;
     timers.push(setTimeout(() => {
       speak(`${hourLabel}의 쥐는 다시 잠드세요.`);
     }, sleepAt));

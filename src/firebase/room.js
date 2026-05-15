@@ -44,10 +44,10 @@ export async function createRoom({ hostId, nickname, avatarIndex }) {
     cheesePlayerId: null,
     phase: GAME_PHASE.LOBBY,
     options: {
-      includeTroll: false,
-      followerRuleVariant: false, // false = 원작 룰, true = 변형 (즉시 공범 지정)
-      fastMode: false, // true = 빠른 모드(7초), false = 기본(15초)
-      countNarration: false, // true = 초세기 나레이션
+      includeTroll: false,         // 트롤은 기본 OFF (옵션)
+      followerRuleVariant: true,   // 변형 룰 기본 ON (공범 지정 단순)
+      fastMode: true,              // 빠른 모드 기본 ON (행동 시간 7초)
+      countNarration: true,        // 초세기 나레이션 기본 ON
     },
     cheeseStolen: false,
     currentHour: 0,
