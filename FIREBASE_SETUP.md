@@ -102,7 +102,7 @@ VITE_FIREBASE_APP_ID=1:1234567890:web:abc...
       "$roomCode": {
         ".read": "auth != null",
         ".write": "auth != null",
-        ".validate": "$roomCode.matches(/^[0-9]{4}$/)"
+        ".validate": "$roomCode.matches(/^h?[0-9]{4}$/)"
       }
     }
   }
@@ -114,7 +114,7 @@ VITE_FIREBASE_APP_ID=1:1234567890:web:abc...
 
 ### 5-4. 규칙 설명
 - **`auth != null`**: 익명이라도 로그인된 사용자만 접근 가능
-- **`$roomCode.matches(/^[0-9]{4}$/)`**: 방 코드는 4자리 숫자만 허용 (스팸 방지)
+- **`$roomCode.matches(/^h?[0-9]{4}$/)`**: 방 코드는 4자리 숫자(게임에서 만든 방) 또는 `h`+4자리(광배월드 방)만 허용 (스팸 방지)
 
 > 💡 **더 엄격한 규칙**이 필요하다면 호스트만 옵션 변경 가능, 본인만 자기 player 노드 수정 가능 등을 추가할 수 있지만, 게임 1회용 친목 도구이므로 위 정도면 충분합니다.
 

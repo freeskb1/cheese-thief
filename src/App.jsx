@@ -3,8 +3,10 @@ import { ensureSignedIn } from './firebase/config';
 import { subscribeRoom } from './firebase/room';
 import { getOrCreateClientId } from './utils/storage';
 import { GAME_PHASE } from './utils/game';
+import { HUB, goBackToHub } from './utils/hub';
 
 import Home from './screens/Home';
+import HubEntry from './screens/HubEntry';
 import JoinRoom from './screens/JoinRoom';
 import Lobby from './screens/Lobby';
 import RuleGuide from './screens/RuleGuide';
@@ -18,7 +20,8 @@ import GameOver from './screens/GameOver';
 
 // 메인 라우터/상태머신
 export default function App() {
-  const [screen, setScreen] = useState('home'); // home | join | inRoom | rules
+  // 광배월드에서 넘어왔으면(HUB) 홈 대신 자동 입장 화면부터
+  const [screen, setScreen] = useState(HUB ? 'hub' : 'home'); // home | join | inRoom | rules | hub
   const [roomCode, setRoomCode] = useState(null);
   const [room, setRoom] = useState(null);
   const [playerId, setPlayerId] = useState(null);
@@ -32,7 +35,8 @@ export default function App() {
       .then((user) => {
         if (!mounted) return;
         // playerId = clientId (브라우저 단위)
-        const id = getOrCreateClientId();
+        // 광배월드 입장: 플레이어 키 = 광배월드 uid (쿼리 우선, localStorage는 건드리지 않음)
+        const id = HUB ? HUB.uid : getOrCreateClientId();
         setPlayerId(id);
         setReady(true);
       })
@@ -47,17 +51,17 @@ export default function App() {
     if (!roomCode) return;
     const unsub = subscribeRoom(roomCode, (data) => {
       if (data == null) {
-        // 방이 사라짐 → 홈으로
+        // 방이 사라짐 → 홈으로 (광배월드 입장이면 대기 화면으로)
         setRoom(null);
         setRoomCode(null);
-        setScreen('home');
+        setScreen(HUB ? 'hub' : 'home');
       } else {
         setRoom(data);
-        // 내 플레이어가 방에서 사라졌으면 → 홈
+        // 내 플레이어가 방에서 사라졌으면 → 홈 (광배월드 입장이면 대기 화면으로)
         if (playerId && data.players && !data.players[playerId]) {
           setRoom(null);
           setRoomCode(null);
-          setScreen('home');
+          setScreen(HUB ? 'hub' : 'home');
         }
       }
     });
@@ -101,6 +105,12 @@ export default function App() {
             onLeave={() => {
               setRoom(null);
               setRoomCode(null);
+              // 광배월드 입장이면 나가기 = 광배월드 방으로 돌아가기
+              // ('leaving'으로 두어 대기 화면이 다시 입장시키지 않게 함)
+              if (HUB && goBackToHub()) {
+                setScreen('leaving');
+                return;
+              }
               setScreen('home');
             }}
           />
@@ -129,6 +139,36 @@ export default function App() {
           </FullScreenMessage>
         );
     }
+  }
+
+  // ── 광배월드 입장 전용 화면 (HUB가 없으면 여기로 오지 않음) ──
+  if (HUB && screen === 'leaving') {
+    return (
+      <FullScreenMessage>
+        <div style={{ fontSize: 14, color: '#8B7A55' }}>광배월드로 돌아가는 중...</div>
+      </FullScreenMessage>
+    );
+  }
+
+  if (HUB && screen === 'hub') {
+    return (
+      <HubEntry
+        playerId={playerId}
+        onEntered={(code) => {
+          setRoomCode(code);
+          setScreen('inRoom');
+        }}
+      />
+    );
+  }
+
+  if (HUB && screen === 'inRoom' && !room) {
+    // 방 구독 첫 데이터가 올 때까지 (홈 화면이 잠깐 보이지 않도록)
+    return (
+      <FullScreenMessage>
+        <div style={{ fontSize: 14, color: '#8B7A55' }}>입장 중...</div>
+      </FullScreenMessage>
+    );
   }
 
   if (screen === 'rules') {

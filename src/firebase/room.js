@@ -8,6 +8,7 @@ import {
   remove,
   serverTimestamp,
   onDisconnect,
+  runTransaction,
 } from 'firebase/database';
 import { db } from '../firebase/config';
 import { generateRoomCode, assignRoles, rollDiceForPlayers, GAME_PHASE } from '../utils/game';
@@ -84,6 +85,91 @@ export async function joinRoom({ roomCode, playerId, nickname, avatarIndex }) {
     avatarIndex,
     joinedAt: serverTimestamp(),
     isHost: false,
+  });
+}
+
+// ── 광배월드(허브) 자동 입장 ──
+// 방 키는 h{room}, room.hubSid = 이번 판 sid (createRoom과 같은 초기 구조 + hubSid)
+function buildHubRoom({ sid, hostId, nickname, avatarIndex, now }) {
+  return {
+    createdAt: now,
+    hubSid: sid,
+    hostId,
+    cheesePlayerId: null,
+    phase: GAME_PHASE.LOBBY,
+    options: {
+      includeTroll: false,
+      followerRuleVariant: true,
+      fastMode: true,
+      countNarration: true,
+    },
+    cheeseStolen: false,
+    currentHour: 0,
+    players: {
+      [hostId]: {
+        nickname,
+        avatarIndex,
+        joinedAt: now,
+        isHost: true,
+      },
+    },
+    timerEndsAt: null,
+  };
+}
+
+// 방장: 방이 없거나 hubSid가 다르면(예전 판) 새로 만들고, 같으면 그대로 쓴다. (트랜잭션 → 멱등)
+export async function ensureHubRoom({ roomKey, sid, hostId, nickname, avatarIndex }) {
+  const result = await runTransaction(getRoomRef(roomKey), (cur) => {
+    if (!cur || cur.hubSid !== sid) {
+      // 트랜잭션 안에서는 serverTimestamp 대신 Date.now()
+      return buildHubRoom({ sid, hostId, nickname, avatarIndex, now: Date.now() });
+    }
+    if (!cur.players || !cur.players[hostId]) {
+      // 같은 판인데 방장이 players에서 빠진 경우(방 나가기 등) → 다시 넣기
+      return {
+        ...cur,
+        players: {
+          ...(cur.players || {}),
+          [hostId]: { nickname, avatarIndex, joinedAt: Date.now(), isHost: cur.hostId === hostId },
+        },
+      };
+    }
+    return undefined; // 이미 만든 방 (새로고침 등) → 아무것도 안 씀
+  });
+  return result.snapshot.val();
+}
+
+// 멤버: 이미 players에 있으면 다시 쓰지 않음(어느 단계든 재입장 가능).
+// 없으면 로비일 때만, 10명 미만일 때만 입장.
+export async function joinHubRoom({ roomKey, playerId, nickname, avatarIndex, isDevice }) {
+  const snap = await get(getRoomRef(roomKey));
+  if (!snap.exists()) throw new Error('방을 찾을 수 없어요');
+  const room = snap.val();
+  if (room.players && room.players[playerId]) return room;
+  if (room.phase !== GAME_PHASE.LOBBY) {
+    throw new Error('이미 게임이 시작됐어요');
+  }
+  const playerCount = Object.keys(room.players || {}).length;
+  if (playerCount >= 10) {
+    throw new Error('인원이 가득 찼어요');
+  }
+  const data = {
+    nickname,
+    avatarIndex,
+    joinedAt: serverTimestamp(),
+    isHost: room.hostId === playerId,
+  };
+  if (isDevice) data.isDevice = true;
+  await update(getPlayerRef(roomKey, playerId), data);
+  return room;
+}
+
+// 공용 기기: 치즈 단말이 아직 비어 있으면 자기 자신을 치즈 단말로 지정.
+// 방장이 이미 다른 사람을 정했으면 건드리지 않음 (방장은 로비에서 탭으로 언제든 바꿀 수 있음)
+export async function claimCheeseTerminalIfEmpty(roomKey, playerId) {
+  await runTransaction(ref(db, `rooms/${roomKey}/cheesePlayerId`), (cur) => {
+    if (cur) return undefined; // 이미 지정됨 → 그대로
+    return playerId;
   });
 }
 
