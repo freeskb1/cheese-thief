@@ -1,4 +1,4 @@
-// 광배월드(허브)에서 넘어온 경우의 쿼리 파싱
+// 말랑월드(허브)에서 넘어온 경우의 쿼리 파싱
 //   ?room=4821&sid=...&uid=...&name=...&host=1&device=1&hub=...
 // room·sid·uid가 모두 있을 때만 허브 모드. 없으면 null → 기존 단독 흐름 그대로.
 // (hub.js는 defer라 window.KWANGBBAN이 늦게 생길 수 있어 location.search를 직접 읽는다)
@@ -28,7 +28,7 @@ export function isHubRoomKey(roomCode) {
   return typeof roomCode === 'string' && roomCode.charAt(0) === 'h';
 }
 
-// 광배월드 방으로 돌아가기 (hub.js의 버튼과 같은 동작)
+// 말랑월드 방으로 돌아가기 (hub.js의 버튼과 같은 동작)
 export function goBackToHub() {
   if (!HUB || !HUB.hub) return false;
   try {

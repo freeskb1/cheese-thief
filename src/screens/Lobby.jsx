@@ -13,7 +13,7 @@ export default function Lobby({ room, roomCode, playerId, onShowRules, onLeave }
   const players = room.players || {};
   const playerIds = Object.keys(players);
   const cheesePlayerId = room.cheesePlayerId;
-  // 광배월드 방(h1234)은 QR/코드 입장 대상이 아님 → QR 숨기고 방 번호만 표시
+  // 말랑월드 방(h1234)은 QR/코드 입장 대상이 아님 → QR 숨기고 방 번호만 표시
   const hubRoom = isHubRoomKey(roomCode);
 
   // 참가자 수 = 전체 - 치즈 단말
@@ -68,7 +68,7 @@ export default function Lobby({ room, roomCode, playerId, onShowRules, onLeave }
 
         {/* 방 코드 */}
         <div style={{ background: colors.paper, padding: 16, borderRadius: 16, border: `0.5px solid ${colors.hint}`, textAlign: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: colors.muted, letterSpacing: 1, marginBottom: 6 }}>{hubRoom ? '광배월드 방' : '방 코드'}</div>
+          <div style={{ fontSize: 11, color: colors.muted, letterSpacing: 1, marginBottom: 6 }}>{hubRoom ? '말랑월드 방' : '방 코드'}</div>
           <div style={{ fontSize: 36, fontWeight: 700, color: colors.ink, letterSpacing: 8, fontFamily: 'monospace' }}>
             {hubRoom ? roomCode.slice(1) : roomCode}
           </div>

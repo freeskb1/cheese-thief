@@ -20,7 +20,7 @@ import GameOver from './screens/GameOver';
 
 // 메인 라우터/상태머신
 export default function App() {
-  // 광배월드에서 넘어왔으면(HUB) 홈 대신 자동 입장 화면부터
+  // 말랑월드에서 넘어왔으면(HUB) 홈 대신 자동 입장 화면부터
   const [screen, setScreen] = useState(HUB ? 'hub' : 'home'); // home | join | inRoom | rules | hub
   const [roomCode, setRoomCode] = useState(null);
   const [room, setRoom] = useState(null);
@@ -35,7 +35,7 @@ export default function App() {
       .then((user) => {
         if (!mounted) return;
         // playerId = clientId (브라우저 단위)
-        // 광배월드 입장: 플레이어 키 = 광배월드 uid (쿼리 우선, localStorage는 건드리지 않음)
+        // 말랑월드 입장: 플레이어 키 = 말랑월드 uid (쿼리 우선, localStorage는 건드리지 않음)
         const id = HUB ? HUB.uid : getOrCreateClientId();
         setPlayerId(id);
         setReady(true);
@@ -51,13 +51,13 @@ export default function App() {
     if (!roomCode) return;
     const unsub = subscribeRoom(roomCode, (data) => {
       if (data == null) {
-        // 방이 사라짐 → 홈으로 (광배월드 입장이면 대기 화면으로)
+        // 방이 사라짐 → 홈으로 (말랑월드 입장이면 대기 화면으로)
         setRoom(null);
         setRoomCode(null);
         setScreen(HUB ? 'hub' : 'home');
       } else {
         setRoom(data);
-        // 내 플레이어가 방에서 사라졌으면 → 홈 (광배월드 입장이면 대기 화면으로)
+        // 내 플레이어가 방에서 사라졌으면 → 홈 (말랑월드 입장이면 대기 화면으로)
         if (playerId && data.players && !data.players[playerId]) {
           setRoom(null);
           setRoomCode(null);
@@ -105,7 +105,7 @@ export default function App() {
             onLeave={() => {
               setRoom(null);
               setRoomCode(null);
-              // 광배월드 입장이면 나가기 = 광배월드 방으로 돌아가기
+              // 말랑월드 입장이면 나가기 = 말랑월드 방으로 돌아가기
               // ('leaving'으로 두어 대기 화면이 다시 입장시키지 않게 함)
               if (HUB && goBackToHub()) {
                 setScreen('leaving');
@@ -141,11 +141,11 @@ export default function App() {
     }
   }
 
-  // ── 광배월드 입장 전용 화면 (HUB가 없으면 여기로 오지 않음) ──
+  // ── 말랑월드 입장 전용 화면 (HUB가 없으면 여기로 오지 않음) ──
   if (HUB && screen === 'leaving') {
     return (
       <FullScreenMessage>
-        <div style={{ fontSize: 14, color: '#8B7A55' }}>광배월드로 돌아가는 중...</div>
+        <div style={{ fontSize: 14, color: '#8B7A55' }}>말랑월드로 돌아가는 중...</div>
       </FullScreenMessage>
     );
   }

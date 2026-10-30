@@ -88,7 +88,7 @@ export async function joinRoom({ roomCode, playerId, nickname, avatarIndex }) {
   });
 }
 
-// ── 광배월드(허브) 자동 입장 ──
+// ── 말랑월드(허브) 자동 입장 ──
 // 방 키는 h{room}, room.hubSid = 이번 판 sid (createRoom과 같은 초기 구조 + hubSid)
 function buildHubRoom({ sid, hostId, nickname, avatarIndex, now }) {
   return {

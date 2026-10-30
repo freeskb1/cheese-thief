@@ -7,7 +7,7 @@ import { pickRandomNickname, GAME_PHASE } from '../utils/game';
 import { HUB } from '../utils/hub';
 import MouseAvatar from '../components/MouseAvatar';
 
-// 광배월드에서 넘어왔을 때: 홈/닉네임/방 만들기 화면을 건너뛰고 바로 대기실로.
+// 말랑월드에서 넘어왔을 때: 홈/닉네임/방 만들기 화면을 건너뛰고 바로 대기실로.
 //   방장(host=1): h{room} 방을 멱등하게 만들고(hubSid 비교) 바로 입장
 //   멤버: 방장이 이번 판(sid) 방을 만들 때까지 "방장을 기다리는 중…" → 생기면 자동 입장
 //   공용 기기(device=1): 입장 후 치즈 단말이 비어 있으면 자기 자신을 치즈 단말로 지정
@@ -182,7 +182,7 @@ export default function HubEntry({ playerId, onEntered }) {
         누가 치즈를 훔쳤을까?
       </div>
       <div style={{ fontSize: 12, color: colors.muted, marginTop: 8 }}>
-        광배월드 방 {HUB.room}
+        말랑월드 방 {HUB.room}
         {HUB.name ? ` · ${HUB.name}` : ''}
         {HUB.device ? ' · 🧀 치즈 단말기' : ''}
       </div>
