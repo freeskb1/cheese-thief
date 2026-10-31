@@ -11,6 +11,8 @@
     <style>
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
       html, body, #root { margin: 0; padding: 0; height: 100%; width: 100%; }
+      /* 당겨서 새로고침(pull-to-refresh)·바운스 막기 — 실수로 새로고침되어 게임이 끊기지 않게 */
+      html, body { overscroll-behavior: none; }
       body {
         font-family: 'Gowun Dodum', 'Apple SD Gothic Neo', sans-serif;
         background: #FAF3E3;

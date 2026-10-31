@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ensureSignedIn } from './firebase/config';
-import { subscribeRoom } from './firebase/room';
-import { getOrCreateClientId } from './utils/storage';
+import { subscribeRoom, isStillInRoom } from './firebase/room';
+import { getOrCreateClientId, getStoredRoom, setStoredRoom } from './utils/storage';
 import { GAME_PHASE } from './utils/game';
 import { HUB, goBackToHub } from './utils/hub';
 
@@ -38,7 +38,28 @@ export default function App() {
         // 말랑월드 입장: 플레이어 키 = 말랑월드 uid (쿼리 우선, localStorage는 건드리지 않음)
         const id = HUB ? HUB.uid : getOrCreateClientId();
         setPlayerId(id);
-        setReady(true);
+        if (HUB) {
+          setReady(true);
+          return;
+        }
+        // 단독 흐름: 새로고침(당겨서 새로고침 포함) 전에 있던 방에 아직 내가 있으면 바로 복귀
+        const stored = getStoredRoom();
+        if (!stored) {
+          setReady(true);
+          return;
+        }
+        return isStillInRoom(stored, id)
+          .catch(() => false)
+          .then((stillIn) => {
+            if (!mounted) return;
+            if (stillIn) {
+              setRoomCode(stored);
+              setScreen('inRoom');
+            } else {
+              setStoredRoom('');
+            }
+            setReady(true);
+          });
       })
       .catch((e) => setError(e.message));
     return () => {
@@ -49,9 +70,12 @@ export default function App() {
   // 방 입장 후 실시간 구독
   useEffect(() => {
     if (!roomCode) return;
+    // 단독 흐름이면 새로고침 복귀용으로 방 코드 기억 (말랑월드는 쿼리로 복귀)
+    if (!HUB) setStoredRoom(roomCode);
     const unsub = subscribeRoom(roomCode, (data) => {
       if (data == null) {
         // 방이 사라짐 → 홈으로 (말랑월드 입장이면 대기 화면으로)
+        if (!HUB) setStoredRoom('');
         setRoom(null);
         setRoomCode(null);
         setScreen(HUB ? 'hub' : 'home');
@@ -59,6 +83,7 @@ export default function App() {
         setRoom(data);
         // 내 플레이어가 방에서 사라졌으면 → 홈 (말랑월드 입장이면 대기 화면으로)
         if (playerId && data.players && !data.players[playerId]) {
+          if (!HUB) setStoredRoom('');
           setRoom(null);
           setRoomCode(null);
           setScreen(HUB ? 'hub' : 'home');
@@ -68,18 +93,19 @@ export default function App() {
     return unsub;
   }, [roomCode, playerId]);
 
-  if (!ready) {
-    return (
-      <FullScreenMessage>
-        <div style={{ fontSize: 14, color: '#8B7A55' }}>준비 중...</div>
-      </FullScreenMessage>
-    );
-  }
-
+  // (오류를 먼저 확인 — 로그인 실패 시 "준비 중"에 멈춰 있지 않게)
   if (error) {
     return (
       <FullScreenMessage>
         <div style={{ fontSize: 14, color: '#C73E5C' }}>오류: {error}</div>
+      </FullScreenMessage>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <FullScreenMessage>
+        <div style={{ fontSize: 14, color: '#8B7A55' }}>준비 중...</div>
       </FullScreenMessage>
     );
   }
@@ -103,6 +129,7 @@ export default function App() {
             playerId={playerId}
             onShowRules={() => setScreen('rules')}
             onLeave={() => {
+              if (!HUB) setStoredRoom('');
               setRoom(null);
               setRoomCode(null);
               // 말랑월드 입장이면 나가기 = 말랑월드 방으로 돌아가기
@@ -162,7 +189,7 @@ export default function App() {
     );
   }
 
-  if (HUB && screen === 'inRoom' && !room) {
+  if (screen === 'inRoom' && !room) {
     // 방 구독 첫 데이터가 올 때까지 (홈 화면이 잠깐 보이지 않도록)
     return (
       <FullScreenMessage>

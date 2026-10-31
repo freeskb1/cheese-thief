@@ -29,3 +29,23 @@ export function getStoredAvatar() {
 export function setStoredAvatar(idx) {
   localStorage.setItem(KEY_AVATAR, String(idx));
 }
+
+// 단독 흐름: 지금 들어가 있는 방 코드 (새로고침하면 같은 방으로 복귀)
+const KEY_ROOM = 'cheese_thief_room';
+
+export function getStoredRoom() {
+  try {
+    return localStorage.getItem(KEY_ROOM) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+export function setStoredRoom(code) {
+  try {
+    if (code) localStorage.setItem(KEY_ROOM, code);
+    else localStorage.removeItem(KEY_ROOM);
+  } catch (e) {
+    // ignore
+  }
+}

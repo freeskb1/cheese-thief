@@ -72,6 +72,8 @@ export async function joinRoom({ roomCode, playerId, nickname, avatarIndex }) {
     throw new Error('방을 찾을 수 없어요');
   }
   const room = snap.val();
+  // 이미 이 방에 있는 사람(새로고침·재접속) → 다시 쓰지 않고 그대로 입장 (어느 단계든)
+  if (room.players && room.players[playerId]) return;
   if (room.phase !== GAME_PHASE.LOBBY) {
     throw new Error('이미 게임이 시작됐어요');
   }
@@ -86,6 +88,17 @@ export async function joinRoom({ roomCode, playerId, nickname, avatarIndex }) {
     joinedAt: serverTimestamp(),
     isHost: false,
   });
+}
+
+// 새로고침 복귀용: 그 방이 아직 있고 내가 players에 남아 있는지
+// (며칠 전 방에 갑자기 들어가지 않게 12시간 넘은 방은 제외)
+export async function isStillInRoom(roomCode, playerId) {
+  if (!roomCode || !playerId) return false;
+  const snap = await get(getRoomRef(roomCode));
+  const room = snap.val();
+  if (!room || !room.players || !room.players[playerId]) return false;
+  if (typeof room.createdAt === 'number' && Date.now() - room.createdAt > 12 * 60 * 60 * 1000) return false;
+  return true;
 }
 
 // ── 말랑월드(허브) 자동 입장 ──
