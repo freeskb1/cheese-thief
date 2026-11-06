@@ -76,7 +76,16 @@ export function speak(text, opts = {}) {
     u.pitch = opts.pitch ?? 1.0;
     u.volume = opts.volume ?? 1;
     if (preferredVoice) u.voice = preferredVoice;
-    u.onend = () => setTimeout(() => say(i + 1), i < parts.length - 1 ? parts[i].pause : 0);
+    // 아이폰 사파리는 onend가 가끔 안 와서 다음 문장이 멈출 수 있음 → 예상 길이가 지나면 다음으로
+    let moved = false;
+    const next = () => {
+      if (moved) return;
+      moved = true;
+      clearTimeout(guard);
+      setTimeout(() => say(i + 1), i < parts.length - 1 ? parts[i].pause : 0);
+    };
+    const guard = setTimeout(next, 900 + (parts[i].t.length * 190) / (u.rate || 1));
+    u.onend = next;
     u.onerror = (e) => { if (opts.onerror) opts.onerror(e); };
     try {
       window.speechSynthesis.speak(u);
