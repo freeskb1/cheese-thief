@@ -122,7 +122,7 @@ function BigRoleCard({ player, isMe }) {
         }}>나</div>
       )}
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <MouseAvatar role={role} color={colors.avatarColors[player.avatarIndex] || colors.avatarColors[0]} size={80} />
+        <img src={`/img/role_${role}.webp`} alt="" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 14, border: `3px solid ${colors.avatarColors[player.avatarIndex] || colors.avatarColors[0]}` }} />
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: textColor, marginTop: 10 }}>
         {player.nickname}

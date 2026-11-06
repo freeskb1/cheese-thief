@@ -66,13 +66,13 @@ export default function Home({ playerId, onCreated, onJoin }) {
         position: 'relative',
       }}
     >
-      <div style={{ animation: 'fadeIn 0.6s ease-out', textAlign: 'center', marginBottom: 48 }}>
+      <div style={{ animation: 'fadeIn 0.6s ease-out', textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 13, letterSpacing: 2, color: colors.muted, marginBottom: 8 }}>BOARDGAME</div>
         <div style={{ fontSize: 28, fontWeight: 700, color: colors.ink, fontFamily: fonts.display, lineHeight: 1.3 }}>
           누가 치즈를<br />훔쳤을까?
         </div>
-        <div style={{ marginTop: 20, animation: 'float 3s ease-in-out infinite' }}>
-          <CheeseIcon size={80} />
+        <div style={{ marginTop: 20 }}>
+          <img src="/img/hero.webp" alt="" style={{ width: 'min(340px, 86vw)', aspectRatio: '3 / 2', objectFit: 'cover', borderRadius: 20, boxShadow: '0 10px 30px rgba(92,74,42,0.25)', border: `3px solid ${colors.paper}` }} />
         </div>
         <div style={{ marginTop: 16, fontSize: 13, color: colors.muted }}>쥐들의 추리 게임 · 4~10인</div>
       </div>

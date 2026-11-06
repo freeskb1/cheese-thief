@@ -507,19 +507,7 @@ function Morning({ room, roomCode }) {
       }}
     >
       <div style={{ flex: '0 0 auto', marginTop: 8 }}>
-        <svg width="70" height="70" viewBox="0 0 120 120" style={{ animation: 'float 3s ease-in-out infinite' }}>
-          <circle cx="60" cy="60" r="28" fill={colors.cheese} />
-          <g stroke={colors.cheese} strokeWidth="3" strokeLinecap="round">
-            <line x1="60" y1="20" x2="60" y2="10" />
-            <line x1="60" y1="100" x2="60" y2="110" />
-            <line x1="20" y1="60" x2="10" y2="60" />
-            <line x1="100" y1="60" x2="110" y2="60" />
-            <line x1="32" y1="32" x2="25" y2="25" />
-            <line x1="88" y1="88" x2="95" y2="95" />
-            <line x1="88" y1="32" x2="95" y2="25" />
-            <line x1="32" y1="88" x2="25" y2="95" />
-          </g>
-        </svg>
+        <img src="/img/morning.webp" alt="" style={{ width: 'min(360px, 88vw)', aspectRatio: '3 / 2', objectFit: 'cover', borderRadius: 18, boxShadow: '0 8px 24px rgba(92,74,42,0.3)', border: `3px solid ${colors.paper}` }} />
       </div>
 
       <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', animation: 'slideUp 0.6s', minHeight: 0 }}>

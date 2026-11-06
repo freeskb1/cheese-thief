@@ -1,16 +1,20 @@
-// 브라우저 내장 TTS — 한국어 여성 보이스 우선 선택
+// 브라우저 내장 TTS — 아발론과 같은 목소리 고르기 (자연스러운 한국어 음성 우선: Yuna 등)
 
 let voices = [];
 let preferredVoice = null;
 let ttsUnlocked = false;
 
+const PREFER = ['natural', 'online', 'neural', 'premium', 'enhanced', 'yuna', 'sunhi', 'injoon', 'google 한국의'];
 function loadVoices() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  voices = window.speechSynthesis.getVoices();
-  preferredVoice =
-    voices.find((v) => /ko/i.test(v.lang) && /female|yuna|sora|heami/i.test(v.name)) ||
-    voices.find((v) => /ko/i.test(v.lang)) ||
-    null;
+  voices = window.speechSynthesis.getVoices() || [];
+  const ko = voices.filter((v) => /^ko([-_]|$)/i.test(v.lang || ''));
+  const score = (v) => {
+    const n = (v.name || '').toLowerCase();
+    const i = PREFER.findIndex((p) => n.includes(p));
+    return (i < 0 ? 100 : i) - (/ko[-_]kr/i.test(v.lang) ? 0.5 : 0);
+  };
+  preferredVoice = ko.slice().sort((a, b) => score(a) - score(b))[0] || null;
 }
 
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -41,7 +45,7 @@ export function speak(text, opts = {}) {
   window.speechSynthesis.cancel();
 
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
+  u.lang = (preferredVoice && preferredVoice.lang) || 'ko-KR';
   u.rate = opts.rate ?? 0.95;
   u.pitch = opts.pitch ?? 1.0; // 자연스러운 톤
   u.volume = opts.volume ?? 1;

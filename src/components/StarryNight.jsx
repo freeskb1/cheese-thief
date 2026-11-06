@@ -1,5 +1,5 @@
 // 밤하늘 별 배경 (절대 위치, 자식 컴포넌트 위에 깔림)
-export default function StarryNight({ density = 'medium' }) {
+export default function StarryNight({ density = 'medium', painting = true }) {
   const count = density === 'high' ? 20 : density === 'low' ? 8 : 14;
   const stars = [];
   for (let i = 0; i < count; i++) {
@@ -11,6 +11,11 @@ export default function StarryNight({ density = 'medium' }) {
     });
   }
   return (
+    <>
+    {painting && (
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'url(/img/night.webp) center bottom / cover no-repeat', opacity: 0.7 }} />
+    )}
     <svg
       style={{
         position: 'absolute',
@@ -26,5 +31,6 @@ export default function StarryNight({ density = 'medium' }) {
         <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#F4D06F" opacity={s.opacity} />
       ))}
     </svg>
+    </>
   );
 }

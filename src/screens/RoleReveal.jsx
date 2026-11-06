@@ -74,8 +74,8 @@ export default function RoleReveal({ room, roomCode, playerId }) {
               fontFamily: fonts.body,
             }}
           >
-            <div style={{ fontSize: 60 }}>🎭</div>
-            <div style={{ fontSize: 14, color: colors.ink, marginTop: 16, fontWeight: 700 }}>
+            <img src="/img/card_back.webp" alt="" style={{ width: '78%', borderRadius: 12, boxShadow: '0 6px 16px rgba(92,74,42,0.25)' }} />
+            <div style={{ fontSize: 14, color: colors.ink, marginTop: 14, fontWeight: 700 }}>
               탭해서 역할 확인
             </div>
             <div style={{ fontSize: 11, color: colors.muted, marginTop: 8 }}>
@@ -96,11 +96,7 @@ export default function RoleReveal({ room, roomCode, playerId }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-              <MouseAvatar
-                role={role}
-                size={96}
-                color={role === ROLES.THIEF ? colors.thief : role === ROLES.TROLL ? colors.avatarColors[1] : colors.avatarColors[0]}
-              />
+              <img src={`/img/role_${role}.webp`} alt={ROLE_LABELS[role]} style={{ width: 190, height: 190, objectFit: 'cover', borderRadius: 18, boxShadow: '0 6px 18px rgba(92,74,42,0.25)' }} />
             </div>
             <div style={{ fontSize: 20, fontWeight: 700, color: colors.ink, marginBottom: 10, fontFamily: fonts.display }}>
               {ROLE_LABELS[role]}

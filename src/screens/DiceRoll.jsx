@@ -10,18 +10,37 @@ export default function DiceRoll({ room, roomCode, playerId }) {
   const me = room.players?.[playerId];
   const dice = me?.dice || 1;
   const ready = !!me?.ready;
-  const [rolling, setRolling] = useState(true);
-  const [shown, setShown] = useState(false);
+  // 내가 직접 굴리는 느낌: 처음엔 주사위를 눌러야 굴러감 (새로고침해도 이미 굴렸으면 결과 그대로)
+  const rolledKey = `ct-rolled-${roomCode}-${playerId}-${room.gameId || ''}`;
+  const already = ready || (() => { try { return sessionStorage.getItem(rolledKey) === '1'; } catch (e) { return false; } })();
+  const [rolling, setRolling] = useState(false);
+  const [shown, setShown] = useState(already);
+  const [face, setFace] = useState(already ? dice : 1);
   const isHost = room.hostId === playerId;
 
-  // 굴림 애니메이션 (1.5초)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setRolling(false);
-      setShown(true);
-    }, 1500);
-    return () => clearTimeout(t);
-  }, []);
+  function handleRoll() {
+    if (rolling || shown) return;
+    setRolling(true);
+    try { navigator.vibrate && navigator.vibrate([20, 40, 20, 40, 20]); } catch (e) { /* ignore */ }
+    // 굴러가는 동안 면이 막 바뀌다가(점점 느리게) 내 숫자에 멈춤
+    let delay = 60, elapsed = 0;
+    const tick = () => {
+      elapsed += delay;
+      if (elapsed < 1300) {
+        setFace(1 + Math.floor(Math.random() * 6));
+        delay = Math.min(220, delay * 1.18);
+        setTimeout(tick, delay);
+      } else {
+        setFace(dice);
+        setRolling(false);
+        setShown(true);
+        try { sessionStorage.setItem(rolledKey, '1'); } catch (e) { /* ignore */ }
+        try { navigator.vibrate && navigator.vibrate(60); } catch (e) { /* ignore */ }
+      }
+    };
+    setTimeout(tick, delay);
+  }
+  useEffect(() => { if (shown) setFace(dice); }, [dice, shown]);
 
   function handleConfirm() {
     setPlayerReady(roomCode, playerId, true);
@@ -45,12 +64,26 @@ export default function DiceRoll({ room, roomCode, playerId }) {
           언제 깨어날까요?
         </div>
         <div style={{ fontSize: 11, color: colors.muted, marginTop: 6 }}>
-          {rolling ? '주사위를 굴리는 중...' : '나온 숫자를 기억하세요'}
+          {rolling ? '데굴데굴…' : shown ? '나온 숫자를 기억하세요' : '주사위를 눌러서 직접 굴려요'}
         </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <Dice value={dice} size={130} rolling={rolling} />
+        <button
+          type="button"
+          onClick={handleRoll}
+          disabled={rolling || shown}
+          aria-label="주사위 굴리기"
+          style={{ background: 'none', border: 'none', padding: 0, cursor: shown ? 'default' : 'pointer',
+            animation: rolling ? 'diceTumble 0.45s ease-in-out infinite' : shown ? 'diceLand 0.5s ease-out' : 'diceWait 1.6s ease-in-out infinite' }}
+        >
+          <Dice value={face} size={130} rolling={false} />
+        </button>
+        {!shown && !rolling && (
+          <div style={{ marginTop: 18, fontSize: 15, fontWeight: 700, color: colors.ink, fontFamily: fonts.display, animation: 'pulse 1.4s infinite' }}>
+            👆 주사위를 톡! 눌러 굴리기
+          </div>
+        )}
 
         {shown && (
           <div style={{ marginTop: 28, textAlign: 'center', animation: 'slideUp 0.4s' }}>

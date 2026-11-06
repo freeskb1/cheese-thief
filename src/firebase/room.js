@@ -237,6 +237,7 @@ export async function startGame(roomCode) {
   updates['phase'] = GAME_PHASE.ROLE_REVEAL;
   updates['cheeseStolen'] = false;
   updates['currentHour'] = 0;
+  updates['gameId'] = Date.now();   // 판마다 다른 값 (주사위를 이번 판에 굴렸는지 기억용)
 
   await update(getRoomRef(roomCode), updates);
 }
