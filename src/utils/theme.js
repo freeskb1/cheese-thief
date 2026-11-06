@@ -16,8 +16,8 @@ export const colors = {
   midnightLight: '#3A2F4F',
   midnightDeep: '#1A1530',
   midnightBorder: '#5A4878',
-  midnightText: '#B5A8C5',
-  midnightSub: '#8B7A95',
+  midnightText: '#E6DDF2',
+  midnightSub: '#C4B7D4',
 
   // 텍스트
   ink: '#5C4A2A',        // 본문

@@ -40,30 +40,56 @@ export function isTTSAvailable() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
 
+// 문장마다 끊어서 읽기: 한 번에 읽히면 문장 사이 쉼 없이 붙어버려서
+// 마침표·물음표·느낌표 뒤 0.45초, "5... 4..." 같은 말줄임 뒤 0.6초 쉼
+let speakToken = 0;
+function splitForSpeech(text) {
+  const out = [];
+  const re = /[^.?!…]+(?:\.{2,}|…|[.?!])?/g;
+  let m;
+  while ((m = re.exec(String(text)))) {
+    const raw = m[0].trim();
+    if (!raw) continue;
+    const ellipsis = /(\.{2,}|…)$/.test(raw);
+    const t = raw.replace(/(\.{2,}|…)$/, '').trim();
+    if (!t) continue;
+    out.push({ t, pause: ellipsis ? 600 : 450 });
+  }
+  return out.length ? out : [{ t: String(text), pause: 0 }];
+}
+
 export function speak(text, opts = {}) {
   if (!isTTSAvailable()) return;
   window.speechSynthesis.cancel();
+  const token = ++speakToken;
+  const parts = splitForSpeech(text);
 
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = (preferredVoice && preferredVoice.lang) || 'ko-KR';
-  u.rate = opts.rate ?? 0.95;
-  u.pitch = opts.pitch ?? 1.0; // 자연스러운 톤
-  u.volume = opts.volume ?? 1;
-  if (preferredVoice) u.voice = preferredVoice;
-  if (opts.onend) u.onend = opts.onend;
-  if (opts.onerror) u.onerror = opts.onerror;
-
-  setTimeout(() => {
+  const say = (i) => {
+    if (token !== speakToken) return; // 새 나레이션이 시작되면 이전 것은 멈춤
+    if (i >= parts.length) {
+      if (opts.onend) opts.onend();
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(parts[i].t);
+    u.lang = (preferredVoice && preferredVoice.lang) || 'ko-KR';
+    u.rate = opts.rate ?? 0.95;
+    u.pitch = opts.pitch ?? 1.0;
+    u.volume = opts.volume ?? 1;
+    if (preferredVoice) u.voice = preferredVoice;
+    u.onend = () => setTimeout(() => say(i + 1), i < parts.length - 1 ? parts[i].pause : 0);
+    u.onerror = (e) => { if (opts.onerror) opts.onerror(e); };
     try {
       window.speechSynthesis.speak(u);
     } catch (e) {
       console.warn('TTS speak failed:', e);
     }
-  }, 100);
+  };
+  setTimeout(() => say(0), 100);
 }
 
 export function stopSpeaking() {
   if (!isTTSAvailable()) return;
+  speakToken++;
   window.speechSynthesis.cancel();
 }
 

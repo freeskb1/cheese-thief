@@ -16,6 +16,11 @@ export default function StarryNight({ density = 'medium', painting = true }) {
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
         background: 'url(/img/night.webp) center bottom / cover no-repeat', opacity: 0.7 }} />
     )}
+    {painting && (
+      // 글씨가 그림에 묻히지 않게 가운데를 어둡게
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 80% 55% at 50% 48%, rgba(26,21,48,0.82) 0%, rgba(26,21,48,0.55) 60%, rgba(26,21,48,0.25) 100%)' }} />
+    )}
     <svg
       style={{
         position: 'absolute',

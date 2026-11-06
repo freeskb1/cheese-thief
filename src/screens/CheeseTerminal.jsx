@@ -190,7 +190,7 @@ function NightIntro({ room, roomCode }) {
     unlockTTS();
     if (followerRuleVariant) {
       // 변형 룰 — "변형 룰" 단어 없이 공범 안내만
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 치즈 도둑은 자기 시간에 깨면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리켜 공범으로 만드세요.');
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 치즈 도둑은 자기 시간에 깨어나면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리키세요. 그 쥐가 공범이 됩니다.');
       setTimeout(() => {
         setCurrentHour(roomCode, 1);
         setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
@@ -239,7 +239,7 @@ function NightIntro({ room, roomCode }) {
             <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
               밤을 시작하려면<br />화면을 탭하세요
             </div>
-            <div style={{ fontSize: 11, color: colors.midnightText, marginTop: 14, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: colors.midnightText, marginTop: 14, lineHeight: 1.6 }}>
               모두 준비되면 방장이 탭
             </div>
             <div style={{
@@ -261,7 +261,7 @@ function NightIntro({ room, roomCode }) {
             <div style={{ fontSize: 22, fontWeight: 700, color: colors.cheese, marginTop: 24, lineHeight: 1.4, fontFamily: fonts.display }}>
               깊은 밤이<br />찾아왔어요
             </div>
-            <div style={{ fontSize: 12, color: colors.midnightText, marginTop: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 15, color: colors.midnightText, marginTop: 14, fontStyle: 'italic', lineHeight: 1.6 }}>
               "쉿... 모두 눈을 감고<br />잠드세요"
             </div>
           </>
@@ -438,8 +438,8 @@ function HandOut({ room, roomCode }) {
     >
       <StarryNight density="low" />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{ fontSize: 11, letterSpacing: 2, color: colors.midnightText }}>EXTRA PHASE</div>
-        <div style={{ fontSize: 10, color: colors.midnightSub, marginTop: 4 }}>원작 룰 · {participantCount}인</div>
+        <div style={{ fontSize: 13, letterSpacing: 2, color: colors.midnightText }}>EXTRA PHASE</div>
+        <div style={{ fontSize: 13, color: colors.midnightSub, marginTop: 4 }}>원작 룰 · {participantCount}인</div>
 
         <div style={{ marginTop: 36, marginBottom: 36 }}>
           <svg width="180" height="160" viewBox="0 0 200 160">
@@ -461,8 +461,8 @@ function HandOut({ room, roomCode }) {
           </svg>
         </div>
 
-        <div style={{ fontSize: 16, fontWeight: 700, color: colors.cheese }}>손을 가운데로</div>
-        <div style={{ fontSize: 11, color: colors.midnightText, marginTop: 12, lineHeight: 1.6, fontStyle: 'italic', padding: '0 8px' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: colors.cheese }}>손을 가운데로</div>
+        <div style={{ fontSize: 15, color: colors.midnightText, marginTop: 12, lineHeight: 1.6, fontStyle: 'italic', padding: '0 8px' }}>
           "모두 오른손을 가운데로 뻗어주세요~<br />
           도둑은 {numFollowers === 1 ? '한 명' : '두 명'}의 손을<br />
           톡{numFollowers === 2 ? ', 톡' : ''} 쳐주세요"
@@ -471,7 +471,7 @@ function HandOut({ room, roomCode }) {
 
       <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
         <div style={{ padding: 10, background: colors.midnightLight, borderRadius: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: colors.midnightText }}>실제로 손을 뻗고 진행하세요</div>
+          <div style={{ fontSize: 13, color: colors.midnightText }}>실제로 손을 뻗고 진행하세요</div>
         </div>
       </div>
     </div>
