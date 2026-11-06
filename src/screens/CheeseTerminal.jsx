@@ -188,27 +188,18 @@ function NightIntro({ room, roomCode }) {
     if (started) return;
     setStarted(true);
     unlockTTS();
+    const goNight = () => {
+      setCurrentHour(roomCode, 1);
+      setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
+    };
+    // 다 읽고 2초 쉰 뒤 1시로
+    const after = () => setTimeout(goNight, 2000);
     if (followerRuleVariant) {
-      // 변형 룰 — "변형 룰" 단어 없이 공범 안내만
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 치즈 도둑은 자기 시간에 깨어나면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리키세요. 그 쥐가 공범이 됩니다.');
-      setTimeout(() => {
-        setCurrentHour(roomCode, 1);
-        setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
-      }, 12000);
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 치즈 도둑은 자기 시간에 깨어나면, 함께 깬 잠꾸러기 한 명을 손가락으로 가리키세요. 그 쥐가 공범이 됩니다.', { onend: after });
     } else if (needHandOut) {
-      // 원작 룰 + 6~8인 — 손 뻗기 단계가 끝에 있음
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 6시가 지나면 손 뻗기 시간이 있을 거예요.');
-      setTimeout(() => {
-        setCurrentHour(roomCode, 1);
-        setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
-      }, 9000);
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다. 6시가 지나면 손 뻗기 시간이 있어요.', { onend: after });
     } else {
-      // 원작 룰 + 4~5인 / 9~10인 — 손 뻗기 없음
-      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다.');
-      setTimeout(() => {
-        setCurrentHour(roomCode, 1);
-        setPhase(roomCode, GAME_PHASE.NIGHT_HOUR);
-      }, 5500);
+      speak('모두 눈을 감고 잠드세요. 곧 밤이 깊어집니다.', { onend: after });
     }
   }
 
@@ -284,14 +275,6 @@ function NightHours({ room, roomCode }) {
 
   // 행동 시간 (눈 뜨세요 끝난 후 ~ 잠드세요 멘트 시작 전)
   const ACTION_SEC = fastMode ? 7 : 10;
-  // 호명 발화 시간 (TTS가 끝날 때까지 대기) — 약 3.5초
-  const ANNOUNCE_MS = 3500;
-  // 호명 후 카운트 시작 전까지 여유 (자연스럽게 들리도록)
-  const COUNT_START_GAP_MS = 1000;
-  // "잠드세요" 발화 시간 - 약 2.5초
-  const SLEEP_ANNOUNCE_MS = 2500;
-  // 총 시간 = 호명 + (카운트 시작 갭) + 행동 + 잠드세요
-  const HOUR_DURATION_MS = ANNOUNCE_MS + COUNT_START_GAP_MS + ACTION_SEC * 1000 + SLEEP_ANNOUNCE_MS;
 
   // 시간이 바뀔 때마다 나레이션
   useEffect(() => {
@@ -299,34 +282,34 @@ function NightHours({ room, roomCode }) {
     lastHourRef.current = hour;
     transitioningRef.current = false;
 
-    const hourLabel = hourToKorean(hour);
-    // 1. 호명
-    speak(`${hourLabel}. ${hourLabel}에 깨어난 쥐는 눈을 뜨세요.`);
-
+    // 한 줄이 다 끝난 다음에 다음 줄 (고정 타이머로 겹치면 "새벽 한 시 눈을 뜹니다1 2 3"처럼 붙어서 들림)
     const timers = [];
+    let cancelled = false;
+    const wait = (ms) => new Promise((r) => timers.push(setTimeout(r, ms)));
+    const say = (text, opts = {}) => new Promise((r) => {
+      if (cancelled) return r();
+      speak(text, { ...opts, onend: r });
+    });
 
-    // 2. 초세기 나레이션 (옵션) — 호명 끝나고 1초 쉰 후 카운트다운 시작
-    if (countNarration) {
-      // 카운트는 ACTION_SEC, ACTION_SEC-1, ..., 1 순서로
-      for (let i = 0; i < ACTION_SEC; i++) {
-        const remaining = ACTION_SEC - i;
-        const at = ANNOUNCE_MS + COUNT_START_GAP_MS + i * 1000;
-        timers.push(setTimeout(() => {
-          speak(String(remaining), { rate: 1.1 });
-        }, at));
+    (async () => {
+      // 1. 호명 (숫자로 써야 아이폰 목소리가 "새벽 한시"를 자연스럽게 읽음)
+      await say(`새벽 ${hour}시입니다. ${hour}시에 깬 쥐는 눈을 뜨세요.`);
+      if (cancelled) return;
+      await wait(900);
+      // 2. 행동 시간: 초세기(옵션)는 1초에 하나씩
+      for (let i = ACTION_SEC; i >= 1; i--) {
+        if (cancelled) return;
+        if (countNarration) speak(String(i));
+        await wait(1000);
       }
-    }
-
-    // 3. "잠드세요" 안내 (행동 시간 다 지난 후)
-    const sleepAt = ANNOUNCE_MS + COUNT_START_GAP_MS + ACTION_SEC * 1000;
-    timers.push(setTimeout(() => {
-      speak(`${hourLabel}의 쥐는 다시 잠드세요.`);
-    }, sleepAt));
-
-    // 4. 다음 시간 진행
-    const nextAt = HOUR_DURATION_MS;
-    timers.push(setTimeout(() => {
-      if (transitioningRef.current) return;
+      if (cancelled) return;
+      await wait(300);
+      // 3. 잠드세요
+      await say(`${hour}시 쥐는 다시 잠드세요.`);
+      if (cancelled) return;
+      await wait(1500);
+      // 4. 다음 시간
+      if (cancelled || transitioningRef.current) return;
       transitioningRef.current = true;
       if (hour < 6) {
         setCurrentHour(roomCode, hour + 1);
@@ -338,12 +321,14 @@ function NightHours({ room, roomCode }) {
           setPhase(roomCode, GAME_PHASE.MORNING);
         }
       }
-    }, nextAt));
+    })();
 
     return () => {
+      cancelled = true;
+      if (!transitioningRef.current) lastHourRef.current = null; // 중간에 다시 그려지면 그 시간을 처음부터
       timers.forEach((t) => clearTimeout(t));
     };
-  }, [hour, roomCode, followerRuleVariant, participantCount, fastMode, countNarration, ACTION_SEC, HOUR_DURATION_MS]);
+  }, [hour, roomCode, followerRuleVariant, participantCount, fastMode, countNarration, ACTION_SEC]);
 
   function handleCheeseTap() {
     if (stolen) return;
@@ -388,34 +373,37 @@ function HandOut({ room, roomCode }) {
     if (said.current) return;
     said.current = true;
 
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const say = (text) => new Promise((r) => speak(text, { onend: r }));
     const sequence = async () => {
-      await new Promise((r) => setTimeout(r, 600));
-      speak('아침이 밝기 전, 한 가지 더 남았어요.');
-      await new Promise((r) => setTimeout(r, 3500));
-      speak('모두 오른손을 가운데로 뻗어주세요.');
-      await new Promise((r) => setTimeout(r, 3500));
-
+      await wait(600);
+      await say('아침이 밝기 전, 한 가지 더 남았어요.');
+      await wait(800);
+      await say('모두 오른손을 가운데로 뻗어주세요.');
+      await wait(2000);
       if (numFollowers === 1) {
-        speak('치즈 도둑은 살며시 눈을 떠서, 한 명의 손을 톡 쳐서 공범으로 만드세요.');
+        await say('치즈 도둑은 살며시 눈을 떠서, 한 명의 손을 톡 쳐서 공범으로 만드세요.');
       } else {
-        speak('치즈 도둑은 살며시 눈을 떠서, 두 명의 손을 톡 톡 쳐서 공범으로 만드세요.');
+        await say('치즈 도둑은 살며시 눈을 떠서, 두 명의 손을 톡, 톡 쳐서 공범으로 만드세요.');
       }
-      await new Promise((r) => setTimeout(r, 6000));
-      speak('치즈 도둑은 다시 눈을 감으세요.');
-      await new Promise((r) => setTimeout(r, 2500));
-      speak('5... 4... 3... 2... 1...');
-      await new Promise((r) => setTimeout(r, 5000));
-
+      await wait(5000);
+      await say('치즈 도둑은 다시 눈을 감으세요.');
+      await wait(800);
+      for (let i = 5; i >= 1; i--) {
+        speak(String(i));
+        await wait(1000);
+      }
+      await wait(300);
       if (participantCount === 6) {
-        speak('공범이 된 쥐는 살며시 눈을 떠서 도둑을 확인하세요.');
+        await say('공범이 된 쥐는 살며시 눈을 떠서 도둑을 확인하세요.');
       } else if (participantCount === 7) {
-        speak('공범이 된 두 쥐는 살며시 눈을 떠서 서로를 확인하세요. 도둑이 누군지는 알 수 없답니다.');
+        await say('공범이 된 두 쥐는 살며시 눈을 떠서 서로를 확인하세요. 도둑이 누군지는 알 수 없답니다.');
       } else {
-        speak('치즈 도둑과 두 공범, 셋이 모두 눈을 떠서 서로를 확인하세요.');
+        await say('치즈 도둑과 두 공범, 셋이 모두 눈을 떠서 서로를 확인하세요.');
       }
-      await new Promise((r) => setTimeout(r, 5000));
-      speak('모두 다시 잠드세요.');
-      await new Promise((r) => setTimeout(r, 2500));
+      await wait(5000);
+      await say('모두 다시 잠드세요.');
+      await wait(1500);
 
       setPhase(roomCode, GAME_PHASE.MORNING);
     };
